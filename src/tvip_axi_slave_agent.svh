@@ -11,8 +11,17 @@ typedef tvip_axi_agent_base #(
 ) tvip_axi_slave_agent_base;
 
 class tvip_axi_slave_agent extends tvip_axi_slave_agent_base;
+  tvip_axi_slave_data_monitor data_monitor;
+
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    data_monitor  = tvip_axi_slave_data_monitor::type_id::create("data_monitor", this);
+    data_monitor.set_context(configuration, status);
+  endfunction
+
   function void connect_phase(uvm_phase phase);
     super.connect_phase(phase);
+    write_monitor.request_item_port.connect(data_monitor.analysis_export);
     if (is_active_agent()) begin
       write_monitor.request_port.connect(sequencer.request_export);
       read_monitor.request_port.connect(sequencer.request_export);

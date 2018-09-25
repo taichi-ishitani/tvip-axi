@@ -53,7 +53,7 @@ virtual class tvip_axi_monitor_base #(
     super.end_write_data(item);
     $cast(temp, item);
     if (is_write_component()) begin
-      response_item_port.write(temp);
+      request_item_port.write(temp);
     end
   endfunction
 

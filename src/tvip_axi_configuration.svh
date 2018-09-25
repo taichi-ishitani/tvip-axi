@@ -13,6 +13,7 @@ class tvip_axi_configuration extends tue_configuration;
   rand  int           max_burst_length;
   rand  int           data_width;
   rand  int           strobe_width;
+  rand  int           response_weight[tvip_axi_response];
   rand  int           max_write_data_delay;
   rand  int           mid_write_data_delay[2];
   rand  int           min_write_data_delay;
@@ -77,70 +78,26 @@ class tvip_axi_configuration extends tue_configuration;
     strobe_width == (data_width / 8);
   }
 
-  `define tvip_axi_declare_delay_constraints(DELAY_TYPE) \
-  constraint c_valid_max_min_``DELAY_TYPE``_delay { \
-    max_``DELAY_TYPE``_delay >= -1; \
-    min_``DELAY_TYPE``_delay >= -1; \
-    max_``DELAY_TYPE``_delay >= min_``DELAY_TYPE``_delay; \
-  } \
-  constraint c_default_max_min_``DELAY_TYPE``_delay { \
-    soft max_``DELAY_TYPE``_delay == -1; \
-    soft min_``DELAY_TYPE``_delay == -1; \
-  } \
-  constraint c_valid_mid_``DELAY_TYPE``_delay { \
-    solve max_``DELAY_TYPE``_delay before mid_``DELAY_TYPE``_delay; \
-    solve min_``DELAY_TYPE``_delay before mid_``DELAY_TYPE``_delay; \
-    mid_``DELAY_TYPE``_delay[0] inside {-1, [min_``DELAY_TYPE``_delay:max_``DELAY_TYPE``_delay]}; \
-    mid_``DELAY_TYPE``_delay[1] inside {-1, [min_``DELAY_TYPE``_delay:max_``DELAY_TYPE``_delay]}; \
-    if (get_delay_delta(max_``DELAY_TYPE``_delay, min_``DELAY_TYPE``_delay) >= 1) { \
-      if ((mid_``DELAY_TYPE``_delay[0] >= 0) || (mid_``DELAY_TYPE``_delay[1] >= 0)) { \
-        mid_``DELAY_TYPE``_delay[0] < mid_``DELAY_TYPE``_delay[1]; \
-      } \
-      if (get_min_delay(min_``DELAY_TYPE``_delay) == 0) { \
-        mid_``DELAY_TYPE``_delay[0] > 0; \
-      } \
-    } \
-    else { \
-      mid_``DELAY_TYPE``_delay[0] == -1; \
-      mid_``DELAY_TYPE``_delay[1] == -1; \
-    } \
-  } \
-  constraint c_default_mid_``DELAY_TYPE``_delay { \
-    soft mid_``DELAY_TYPE``_delay[0] == -1; \
-    soft mid_``DELAY_TYPE``_delay[1] == -1; \
-  } \
-  constraint c_valid_``DELAY_TYPE``_delay_weight { \
-    solve max_``DELAY_TYPE``_delay before ``DELAY_TYPE``_delay_weight; \
-    solve min_``DELAY_TYPE``_delay before ``DELAY_TYPE``_delay_weight; \
-    foreach (``DELAY_TYPE``_delay_weight[i]) { \
-      ``DELAY_TYPE``_delay_weight[i] >= -1; \
-      if (get_delay_delta(max_``DELAY_TYPE``_delay, min_``DELAY_TYPE``_delay) == 0) { \
-        ``DELAY_TYPE``_delay_weight[i] == 0; \
-      } \
-    } \
-    if (min_``DELAY_TYPE``_delay > 0) { \
-      ``DELAY_TYPE``_delay_weight[TVIP_AXI_ZERO_DELAY] == 0; \
-    } \
-    if ((min_``DELAY_TYPE``_delay <= 0) && (max_``DELAY_TYPE``_delay == 1)) { \
-      ``DELAY_TYPE``_delay_weight[TVIP_AXI_SHORT_DELAY] == 0; \
-    } \
-  } \
-  constraint c_default_``DELAY_TYPE``_delay_weight { \
-    foreach (``DELAY_TYPE``_delay_weight[i]) { \
-      soft ``DELAY_TYPE``_delay_weight[i] == -1; \
-    } \
+  constraint c_valid_response_weight {
+    foreach (response_weight[i]) {
+      response_weight[i] >= -1;
+    }
   }
 
-  `tvip_axi_declare_delay_constraints(write_data    )
-  `tvip_axi_declare_delay_constraints(response_start)
-  `tvip_axi_declare_delay_constraints(response      )
-  `tvip_axi_declare_delay_constraints(awready       )
-  `tvip_axi_declare_delay_constraints(wready        )
-  `tvip_axi_declare_delay_constraints(bready        )
-  `tvip_axi_declare_delay_constraints(arready       )
-  `tvip_axi_declare_delay_constraints(rready        )
+  constraint c_default_response_weight {
+    foreach (response_weight[i]) {
+      soft response_weight[i] == -1;
+    }
+  }
 
-  `undef  tvip_axi_declare_delay_constraints
+  `tvip_axi_declare_delay_size_constraints(write_data    )
+  `tvip_axi_declare_delay_size_constraints(response_start)
+  `tvip_axi_declare_delay_size_constraints(response      )
+  `tvip_axi_declare_delay_size_constraints(awready       )
+  `tvip_axi_declare_delay_size_constraints(wready        )
+  `tvip_axi_declare_delay_size_constraints(bready        )
+  `tvip_axi_declare_delay_size_constraints(arready       )
+  `tvip_axi_declare_delay_size_constraints(rready        )
 
   constraint c_valid_interleave_depth {
     interleave_depth >= -1;
@@ -177,11 +134,20 @@ class tvip_axi_configuration extends tue_configuration;
 
   function new(string name = "tvip_axi_configuration");
     super.new(name);
+    response_weight[TVIP_AXI_OKAY]          = -1;
+    response_weight[TVIP_AXI_EXOKAY]        = -1;
+    response_weight[TVIP_AXI_SLAVE_ERROR]   = -1;
+    response_weight[TVIP_AXI_DECODE_ERROR]  = -1;
     setup_initial_delay_weight();
   endfunction
 
   function void post_randomize();
     super.post_randomize();
+    foreach (response_weight[i]) begin
+      if (response_weight[i] <= -1) begin
+        response_weight[i]  = (i == TVIP_AXI_OKAY) ? 1 : 0;
+      end
+    end
     setup_delay_configuration(
       max_write_data_delay, mid_write_data_delay, min_write_data_delay, write_data_delay_weight
     );
@@ -279,6 +245,7 @@ class tvip_axi_configuration extends tue_configuration;
     `uvm_field_int(max_burst_length, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(data_width, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(strobe_width, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_aa_int_enumkey(tvip_axi_response, response_weight, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(max_write_data_delay, UVM_DEFAULT | UVM_DEC)
     `uvm_field_sarray_int(mid_write_data_delay, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(min_write_data_delay, UVM_DEFAULT | UVM_DEC)

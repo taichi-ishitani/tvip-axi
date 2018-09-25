@@ -4,33 +4,33 @@ virtual class tvip_axi_item extends tue_sequence_item #(
   .CONFIGURATION  (tvip_axi_configuration ),
   .STATUS         (tvip_axi_status        )
 );
-  rand      tvip_axi_access_type  access_type;
-  rand      tvip_axi_id           id;
-  rand      tvip_axi_address      address;
-  rand      int                   burst_length;
-  rand      int                   burst_size;
-  rand      tvip_axi_burst_type   burst_type;
-  rand      tvip_axi_data         data[];
-  rand      tvip_axi_strobe       strobe[];
-  rand      tvip_axi_response     response[];
-  rand      int                   write_data_delay[];
-  rand      int                   response_start_delay;
-  rand      int                   response_delay[];
-  rand      int                   address_ready_delay;
-  rand      int                   write_data_ready_delay[];
-  rand      int                   response_ready_delay[];
-            uvm_event             address_begin_event;
-            time                  address_begin_time;
-            uvm_event             address_end_event;
-            time                  address_end_time;
-            uvm_event             write_data_begin_event;
-            time                  write_data_begin_time;
-            uvm_event             write_data_end_event;
-            time                  write_data_end_time;
-            uvm_event             response_begin_event;
-            time                  response_begin_time;
-            uvm_event             response_end_event;
-            time                  response_end_time;
+  rand  tvip_axi_access_type  access_type;
+  rand  tvip_axi_id           id;
+  rand  tvip_axi_address      address;
+  rand  int                   burst_length;
+  rand  int                   burst_size;
+  rand  tvip_axi_burst_type   burst_type;
+  rand  tvip_axi_data         data[];
+  rand  tvip_axi_strobe       strobe[];
+  rand  tvip_axi_response     response[];
+  rand  int                   write_data_delay[];
+  rand  int                   response_start_delay;
+  rand  int                   response_delay[];
+  rand  int                   address_ready_delay;
+  rand  int                   write_data_ready_delay[];
+  rand  int                   response_ready_delay[];
+        uvm_event             address_begin_event;
+        time                  address_begin_time;
+        uvm_event             address_end_event;
+        time                  address_end_time;
+        uvm_event             write_data_begin_event;
+        time                  write_data_begin_time;
+        uvm_event             write_data_end_event;
+        time                  write_data_end_time;
+        uvm_event             response_begin_event;
+        time                  response_begin_time;
+        uvm_event             response_end_event;
+        time                  response_end_time;
 
   function new(string name = "tvip_axi_item");
     super.new(name);
@@ -114,7 +114,7 @@ virtual class tvip_axi_item extends tue_sequence_item #(
     end
   endfunction
 
-  `define tvip_axi_define_begin_end_event_api(EVENT_TYPE) \
+  `define tvip_axi_declare_begin_end_event_api(EVENT_TYPE) \
   function void begin_``EVENT_TYPE``(time begin_time = 0); \
     if (``EVENT_TYPE``_begin_event.is_off()) begin \
       ``EVENT_TYPE``_begin_time = (begin_time <= 0) ? $time : begin_time; \
@@ -128,11 +128,11 @@ virtual class tvip_axi_item extends tue_sequence_item #(
     end \
   endfunction
 
-  `tvip_axi_define_begin_end_event_api(address   )
-  `tvip_axi_define_begin_end_event_api(write_data)
-  `tvip_axi_define_begin_end_event_api(response  )
+  `tvip_axi_declare_begin_end_event_api(address   )
+  `tvip_axi_declare_begin_end_event_api(write_data)
+  `tvip_axi_declare_begin_end_event_api(response  )
 
-  `undef  tvip_axi_define_begin_end_event_api
+  `undef  tvip_axi_declare_begin_end_event_api
 
   task wait_for_done();
     fork
@@ -174,49 +174,6 @@ virtual class tvip_axi_item extends tue_sequence_item #(
     `uvm_field_int(response_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
   `uvm_field_utils_end
 endclass
-
-`define tvip_axi_define_delay_consraint(DELAY, MIN, MID_0, MID_1, MAX, WEIGHT_ZERO_DELAY, WEIGHT_SHORT_DELAY, WEIGHT_LONG_DELAY, VALID_CONDITION = 1) \
-constraint c_valid_``DELAY { \
-  if (VALID_CONDITION) { \
-    ((DELAY >= MIN) && (DELAY <= MID_0)) || ((DELAY >= MID_1) && (DELAY >= MAX)); \
-    if (MIN == 0) { \
-      DELAY dist { \
-        0           := WEIGHT_ZERO_DELAY, \
-        [1:MID_0]   :/ WEIGHT_SHORT_DELAY, \
-        [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
-      }; \
-    } \
-    else { \
-      DELAY dist { \
-        [MIN:MID_0] :/ WEIGHT_SHORT_DELAY, \
-        [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
-      }; \
-    } \
-  } \
-  else { \
-    DELAY == 0; \
-  } \
-}
-
-`define tvip_axi_define_delay_consraint_array(DELAY, MIN, MID_0, MID_1, MAX, WEIGHT_ZERO_DELAY, WEIGHT_SHORT_DELAY, WEIGHT_LONG_DELAY) \
-constraint c_valid_``DELAY { \
-  foreach (DELAY[i]) { \
-    ((DELAY[i] >= MIN) && (DELAY[i] <= MID_0)) || ((DELAY[i] >= MID_1) && (DELAY[i] <= MAX)); \
-    if (MIN == 0) { \
-      DELAY[i] dist { \
-        0           := WEIGHT_ZERO_DELAY, \
-        [1:MID_0]   :/ WEIGHT_SHORT_DELAY, \
-        [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
-      }; \
-    } \
-    else { \
-      DELAY[i] dist { \
-        [MIN:MID_0] :/ WEIGHT_SHORT_DELAY, \
-        [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
-      }; \
-    } \
-  } \
-}
 
 class tvip_axi_master_item extends tvip_axi_item;
   constraint c_valid_id {
@@ -267,7 +224,7 @@ class tvip_axi_master_item extends tvip_axi_item;
     (access_type == TVIP_AXI_READ_ACCESS ) -> write_data_delay.size() == 0;
   }
 
-  `tvip_axi_define_delay_consraint_array(
+  `tvip_axi_declare_delay_consraint_array(
     write_data_delay,
     this.configuration.min_write_data_delay,
     this.configuration.mid_write_data_delay[0],
@@ -285,7 +242,7 @@ class tvip_axi_master_item extends tvip_axi_item;
     (access_type == TVIP_AXI_READ_ACCESS ) -> response_ready_delay.size() == burst_length;
   }
 
-  `tvip_axi_define_delay_consraint_array(
+  `tvip_axi_declare_delay_consraint_array(
     response_ready_delay,
     get_min_response_ready_delay(access_type),
     get_mid_response_ready_delay(access_type, 0),
@@ -358,9 +315,17 @@ class tvip_axi_slave_item extends tvip_axi_item;
   constraint c_valid_response {
     (access_type == TVIP_AXI_WRITE_ACCESS) -> response.size() == 1;
     (access_type == TVIP_AXI_READ_ACCESS ) -> response.size() == burst_length;
+    foreach (response[i]) {
+      response[i] dist {
+        TVIP_AXI_OKAY         := this.configuration.response_weight[TVIP_AXI_OKAY        ],
+        TVIP_AXI_EXOKAY       := this.configuration.response_weight[TVIP_AXI_EXOKAY      ],
+        TVIP_AXI_SLAVE_ERROR  := this.configuration.response_weight[TVIP_AXI_SLAVE_ERROR ],
+        TVIP_AXI_DECODE_ERROR := this.configuration.response_weight[TVIP_AXI_DECODE_ERROR]
+      };
+    }
   }
 
-  `tvip_axi_define_delay_consraint(
+  `tvip_axi_declare_delay_consraint(
     address_ready_delay,
     get_min_address_ready_delay(access_type),
     get_mid_address_ready_delay(access_type, 0),
@@ -412,7 +377,7 @@ class tvip_axi_slave_item extends tvip_axi_item;
     (access_type == TVIP_AXI_READ_ACCESS ) -> write_data_ready_delay.size() == 0;
   }
 
-  `tvip_axi_define_delay_consraint_array(
+  `tvip_axi_declare_delay_consraint_array(
     write_data_ready_delay,
     this.configuration.min_wready_delay,
     this.configuration.mid_wready_delay[0],
@@ -441,8 +406,4 @@ class tvip_axi_slave_item extends tvip_axi_item;
   `tue_object_default_constructor(tvip_axi_slave_item)
   `uvm_object_utils(tvip_axi_slave_item)
 endclass
-
-`undef  tvip_axi_define_delay_consraint
-`undef  tvip_axi_define_delay_consraint_array
-
 `endif
