@@ -36,11 +36,11 @@ ifeq ($(strip $(GUI)), dve)
 endif
 
 TESTS	+= default
-TESTS += write_data_delay
-TESTS += response_start_delay
+TESTS	+= write_data_delay
+TESTS	+= response_start_delay
 TESTS	+= response_delay
-TESTS += ready_delay
-TESTS += read_interleave
+TESTS	+= ready_delay
+TESTS	+= read_interleave
 
 TEST_TARGETS	= $(addprefix sim_, $(TESTS))
 
