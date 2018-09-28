@@ -72,6 +72,8 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
           end
           drive_write_data_channel();
         end
+
+        drive_response_channel();
       end
     end
   endtask
@@ -207,7 +209,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
       (current_write_data != null) &&
       (write_data_delay == current_write_data.write_data_delay[write_data_index])
     ) ? '1 : 0;
-    if (valid && current_write_data.write_data_begin_event.is_off()) begin
+    if (valid && (!current_write_data.write_data_began())) begin
       begin_write_data(current_write_data);
     end
 
@@ -304,7 +306,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
       return;
     end
 
-    if (response_items[id][0].item.response_begin_event.is_off()) begin
+    if (!response_items[id][0].item.response_began()) begin
       begin_response(response_items[id][0].item);
     end
 

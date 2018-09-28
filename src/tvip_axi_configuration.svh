@@ -152,6 +152,12 @@ class tvip_axi_configuration extends tue_configuration;
       max_write_data_delay, mid_write_data_delay, min_write_data_delay, write_data_delay_weight
     );
     setup_delay_configuration(
+      max_response_start_delay, mid_response_start_delay, min_response_start_delay, response_start_delay_weight
+    );
+    setup_delay_configuration(
+      max_response_delay, mid_response_delay, min_response_delay, response_delay_weight
+    );
+    setup_delay_configuration(
       max_awready_delay, mid_awready_delay, min_awready_delay, awready_delay_weight
     );
     setup_delay_configuration(

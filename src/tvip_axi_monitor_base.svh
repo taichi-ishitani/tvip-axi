@@ -122,7 +122,7 @@ virtual class tvip_axi_monitor_base #(
   endtask
 
   protected virtual task monitor_write_data();
-    if ((write_items.size() > 0) && write_items[0].item.write_data_begin_event.is_off()) begin
+    if ((write_items.size() > 0) && (!write_items[0].item.write_data_began())) begin
       begin_write_data(write_items[0].item);
     end
     if ((write_items.size() > 0) && get_write_data_ready()) begin
@@ -143,7 +143,7 @@ virtual class tvip_axi_monitor_base #(
     if ((!response_items.exists(id)) || (response_items[id].size() == 0)) begin
       return;
     end
-    if (response_items[id][0].item.response_begin_event.is_off()) begin
+    if (!response_items[id][0].item.response_began()) begin
       begin_response(response_items[id][0].item);
     end
     if (get_response_ready()) begin

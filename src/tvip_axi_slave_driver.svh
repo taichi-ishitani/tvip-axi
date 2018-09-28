@@ -29,6 +29,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
   protected int                         write_data_ready_delay_queue[$];
   protected response_delay_buffer_item  response_delay_buffer[tvip_axi_id][$];
   protected interleave_buffer_item      interleave_buffer[tvip_axi_id];
+  protected bit                         active_ids[tvip_axi_id];
   protected tvip_axi_item               current_response_item;
   protected tvip_axi_id                 current_response_id;
   protected int                         response_size;
@@ -106,6 +107,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     write_data_ready_delay_queue.delete();
     response_delay_buffer.delete();
     interleave_buffer.delete();
+    active_ids.delete();
 
     if (configuration.reset_by_agent) begin
       reset_if();
@@ -178,7 +180,12 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     bit write_data_ready;
 
     if ((write_data_ready_delay < 0) && (write_data_ready_delay_queue.size() > 0)) begin
-      write_data_ready_delay  = write_data_ready_delay_queue.pop_front();
+      if (
+        ((default_write_data_ready == 1) && get_write_data_valid() &&   get_write_data_ready() ) ||
+        ((default_write_data_ready == 0) && get_write_data_valid() && (!get_write_data_ready()))
+      ) begin
+        write_data_ready_delay  = write_data_ready_delay_queue.pop_front();
+      end
     end
 
     write_data_ready  = (
@@ -196,7 +203,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
 
   protected task manage_response_buffer();
     foreach (response_delay_buffer[i, j]) begin
-      if (response_delay_buffer[i][j].item.address_end_event.is_off()) begin
+      if (!response_delay_buffer[i][j].item.request_ended()) begin
         continue;
       end
       if (response_delay_buffer[i][j].start_delay <= 0) begin
@@ -226,7 +233,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
       if (response_delay_buffer[i].size() == 0) begin
         continue;
       end
-      if (response_delay_buffer[i][0].item.address_end_event.is_off()) begin
+      if (!response_delay_buffer[i][0].item.request_ended()) begin
         continue;
       end
       if (response_delay_buffer[i][0].start_delay > 0) begin
@@ -245,6 +252,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
       buffer_item.item            = response_delay_buffer[i][0].item;
       buffer_item.response_index  = 0;
       interleave_buffer[i]        = buffer_item;
+      active_ids[i]               = 1;
       void'(response_delay_buffer[i].pop_front());
     end
   endtask
@@ -255,9 +263,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     tvip_axi_item item;
     int           size;
 
-    if (!std::randomize(id) with {
-      interleave_buffer.exists(id);
-    }) begin
+    if (!std::randomize(id) with { active_ids[id]; }) begin
       return;
     end
 
@@ -311,7 +317,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
       valid = 0;
     end
 
-    if (valid && current_response_item.response_begin_event.is_off()) begin
+    if (valid && (!current_response_item.response_began())) begin
       begin_response(current_response_item);
     end
 
@@ -359,6 +365,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     response_index  = interleave_buffer[current_response_id].response_index;
     if (response_index >= current_response_item.response.size()) begin
       interleave_buffer.delete(current_response_id);
+      active_ids.delete(current_response_id);
       end_response(current_response_item);
       current_response_item = null;
       response_size         = 0;
@@ -367,6 +374,9 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     else if (response_size == 0) begin
       current_response_item = null;
       response_delay        = -1;
+    end
+    else begin
+      response_delay  = 0;
     end
   endtask
 

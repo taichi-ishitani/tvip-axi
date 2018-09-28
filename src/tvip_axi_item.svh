@@ -126,6 +126,12 @@ virtual class tvip_axi_item extends tue_sequence_item #(
       ``EVENT_TYPE``_end_time = (end_time <= 0) ? $time : end_time; \
       ``EVENT_TYPE``_end_event.trigger(); \
     end \
+  endfunction \
+  function bit ``EVENT_TYPE``_began(); \
+    return ``EVENT_TYPE``_begin_event.is_on(); \
+  endfunction \
+  function bit ``EVENT_TYPE``_ended(); \
+    return ``EVENT_TYPE``_end_event.is_on(); \
   endfunction
 
   `tvip_axi_declare_begin_end_event_api(address   )
@@ -133,6 +139,19 @@ virtual class tvip_axi_item extends tue_sequence_item #(
   `tvip_axi_declare_begin_end_event_api(response  )
 
   `undef  tvip_axi_declare_begin_end_event_api
+
+  function bit request_began();
+    return address_began();
+  endfunction
+
+  function bit request_ended();
+    if (is_write()) begin
+      return (address_ended() && write_data_ended()) ? 1 : 0;
+    end
+    else begin
+      return address_ended();
+    end
+  endfunction
 
   task wait_for_done();
     fork
@@ -386,6 +405,33 @@ class tvip_axi_slave_item extends tvip_axi_item;
     this.configuration.wready_delay_weight[TVIP_AXI_ZERO_DELAY],
     this.configuration.wready_delay_weight[TVIP_AXI_SHORT_DELAY],
     this.configuration.wready_delay_weight[TVIP_AXI_LONG_DELAY]
+  )
+
+  `tvip_axi_declare_delay_consraint(
+    response_start_delay,
+    this.configuration.min_response_start_delay,
+    this.configuration.mid_response_start_delay[0],
+    this.configuration.mid_response_start_delay[1],
+    this.configuration.max_response_start_delay[0],
+    this.configuration.response_start_delay_weight[TVIP_AXI_ZERO_DELAY],
+    this.configuration.response_start_delay_weight[TVIP_AXI_SHORT_DELAY],
+    this.configuration.response_start_delay_weight[TVIP_AXI_LONG_DELAY]
+  )
+
+  constraint c_response_delay_valid_size {
+    (access_type == TVIP_AXI_WRITE_ACCESS) -> response_delay.size() == 1;
+    (access_type == TVIP_AXI_READ_ACCESS ) -> response_delay.size() == burst_length;
+  }
+
+  `tvip_axi_declare_delay_consraint_array(
+    response_delay,
+    this.configuration.min_response_delay,
+    this.configuration.mid_response_delay[0],
+    this.configuration.mid_response_delay[1],
+    this.configuration.max_response_delay[0],
+    this.configuration.response_delay_weight[TVIP_AXI_ZERO_DELAY],
+    this.configuration.response_delay_weight[TVIP_AXI_SHORT_DELAY],
+    this.configuration.response_delay_weight[TVIP_AXI_LONG_DELAY]
   )
 
   function void pre_randomize();

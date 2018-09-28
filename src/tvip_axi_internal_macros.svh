@@ -58,19 +58,21 @@ constraint c_default_``DELAY_TYPE``_delay_weight { \
 `define tvip_axi_declare_delay_consraint(DELAY, MIN, MID_0, MID_1, MAX, WEIGHT_ZERO_DELAY, WEIGHT_SHORT_DELAY, WEIGHT_LONG_DELAY, VALID_CONDITION = 1) \
 constraint c_valid_``DELAY { \
   if (VALID_CONDITION) { \
-    ((DELAY >= MIN) && (DELAY <= MID_0)) || ((DELAY >= MID_1) && (DELAY >= MAX)); \
-    if (MIN == 0) { \
-      DELAY dist { \
-        0           := WEIGHT_ZERO_DELAY, \
-        [1:MID_0]   :/ WEIGHT_SHORT_DELAY, \
-        [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
-      }; \
-    } \
-    else { \
-      DELAY dist { \
-        [MIN:MID_0] :/ WEIGHT_SHORT_DELAY, \
-        [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
-      }; \
+    ((DELAY >= MIN) && (DELAY <= MID_0)) || ((DELAY >= MID_1) && (DELAY <= MAX)); \
+    if (MAX > MIN) { \
+      if (MIN == 0) { \
+        DELAY dist { \
+          0           := WEIGHT_ZERO_DELAY, \
+          [1:MID_0]   :/ WEIGHT_SHORT_DELAY, \
+          [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
+        }; \
+      } \
+      else { \
+        DELAY dist { \
+          [MIN:MID_0] :/ WEIGHT_SHORT_DELAY, \
+          [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
+        }; \
+      } \
     } \
   } \
   else { \
@@ -82,18 +84,20 @@ constraint c_valid_``DELAY { \
 constraint c_valid_``DELAY { \
   foreach (DELAY[i]) { \
     ((DELAY[i] >= MIN) && (DELAY[i] <= MID_0)) || ((DELAY[i] >= MID_1) && (DELAY[i] <= MAX)); \
-    if (MIN == 0) { \
-      DELAY[i] dist { \
-        0           := WEIGHT_ZERO_DELAY, \
-        [1:MID_0]   :/ WEIGHT_SHORT_DELAY, \
-        [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
-      }; \
-    } \
-    else { \
-      DELAY[i] dist { \
-        [MIN:MID_0] :/ WEIGHT_SHORT_DELAY, \
-        [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
-      }; \
+    if (MAX > MIN) { \
+      if (MIN == 0) { \
+        DELAY[i] dist { \
+          0           := WEIGHT_ZERO_DELAY, \
+          [1:MID_0]   :/ WEIGHT_SHORT_DELAY, \
+          [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
+        }; \
+      } \
+      else { \
+        DELAY[i] dist { \
+          [MIN:MID_0] :/ WEIGHT_SHORT_DELAY, \
+          [MID_1:MAX] :/ WEIGHT_LONG_DELAY \
+        }; \
+      } \
     } \
   } \
 }
