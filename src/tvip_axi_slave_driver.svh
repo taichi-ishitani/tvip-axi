@@ -222,12 +222,18 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
       item                    = item_buffer.pop_front();
       buffer_item.item        = item;
       buffer_item.start_delay = item.response_start_delay;
-      response_delay_buffer[item.id].push_back(buffer_item);
+      if (configuration.response_ordering == TVIP_AXI_OUT_OF_ORDER) begin
+        response_delay_buffer[item.id].push_back(buffer_item);
+      end
+      else begin
+        response_delay_buffer[0].push_back(buffer_item);
+      end
 
       accept_tr(item);
     end
 
     foreach (response_delay_buffer[i]) begin
+      tvip_axi_id             id;
       interleave_buffer_item  buffer_item;
 
       if (response_delay_buffer[i].size() == 0) begin
@@ -245,14 +251,16 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
       ) begin
         continue;
       end
-      if (interleave_buffer.exists(i)) begin
+
+      id  = response_delay_buffer[i][0].item.id;
+      if (interleave_buffer.exists(id)) begin
         continue;
       end
 
       buffer_item.item            = response_delay_buffer[i][0].item;
       buffer_item.response_index  = 0;
-      interleave_buffer[i]        = buffer_item;
-      active_ids[i]               = 1;
+      interleave_buffer[id]       = buffer_item;
+      active_ids[id]              = 1;
       void'(response_delay_buffer[i].pop_front());
     end
   endtask

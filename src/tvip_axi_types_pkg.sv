@@ -78,6 +78,11 @@ package tvip_axi_types_pkg;
   } tvip_axi_response;
 
   typedef enum {
+    TVIP_AXI_IN_ORDER,
+    TVIP_AXI_OUT_OF_ORDER
+  } tvip_axi_ordering_mode;
+
+  typedef enum {
     TVIP_AXI_WRITE_ACCESS,
     TVIP_AXI_READ_ACCESS
   } tvip_axi_access_type;

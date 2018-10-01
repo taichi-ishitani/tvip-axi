@@ -5,6 +5,7 @@ class tvip_axi_sample_configuration extends tue_configuration;
         bit                     enable_response_start_delay;
         bit                     enable_response_delay;
         bit                     enable_ready_delay;
+        bit                     enable_out_of_order_response;
         bit                     enable_read_interleave;
   rand  tvip_axi_configuration  axi_cfg;
 
@@ -26,7 +27,7 @@ class tvip_axi_sample_configuration extends tue_configuration;
   }
 
   constraint c_response_start_delay {
-    if (enable_response_start_delay) {
+    if (enable_response_start_delay || enable_out_of_order_response) {
       axi_cfg.min_response_start_delay                          == 0;
       axi_cfg.max_response_start_delay                          == 10;
       axi_cfg.response_start_delay_weight[TVIP_AXI_ZERO_DELAY]  == 6;
@@ -80,6 +81,15 @@ class tvip_axi_sample_configuration extends tue_configuration;
     }
   }
 
+  constraint c_response_ordering {
+    if (enable_out_of_order_response || enable_read_interleave) {
+      axi_cfg.response_ordering == TVIP_AXI_OUT_OF_ORDER;
+    }
+    else {
+      axi_cfg.response_ordering == TVIP_AXI_IN_ORDER;
+    }
+  }
+
   constraint c_read_interleave {
     if (enable_read_interleave) {
       axi_cfg.interleave_depth inside {[1:4]};
@@ -107,16 +117,20 @@ class tvip_axi_sample_configuration extends tue_configuration;
     if (clp.get_arg_matches("+ENABLE_READY_DELAY", values)) begin
       enable_ready_delay  = 1;
     end
+    if (clp.get_arg_matches("+ENABLE_OUT_OF_ORDER_RESPONSE", values)) begin
+      enable_out_of_order_response  = 1;
+    end
     if (clp.get_arg_matches("+ENABLE_READ_INTERLEAVE", values)) begin
       enable_read_interleave  = 1;
     end
   endfunction
-  
+
   `uvm_object_utils_begin(tvip_axi_sample_configuration)
     `uvm_field_int(enable_write_data_delay, UVM_DEFAULT | UVM_BIN)
     `uvm_field_int(enable_response_start_delay, UVM_DEFAULT | UVM_BIN)
     `uvm_field_int(enable_response_delay, UVM_DEFAULT | UVM_BIN)
     `uvm_field_int(enable_ready_delay, UVM_DEFAULT | UVM_BIN)
+    `uvm_field_int(enable_out_of_order_response, UVM_DEFAULT | UVM_BIN)
     `uvm_field_int(enable_read_interleave, UVM_DEFAULT | UVM_BIN)
     `uvm_field_object(axi_cfg, UVM_DEFAULT)
   `uvm_object_utils_end

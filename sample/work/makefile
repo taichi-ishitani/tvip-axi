@@ -40,6 +40,7 @@ TESTS	+= write_data_delay
 TESTS	+= response_start_delay
 TESTS	+= response_delay
 TESTS	+= ready_delay
+TESTS	+= out_of_order_response
 TESTS	+= read_interleave
 
 TEST_TARGETS	= $(addprefix sim_, $(TESTS))
