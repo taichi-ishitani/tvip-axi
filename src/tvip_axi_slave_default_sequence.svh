@@ -1,20 +1,30 @@
 `ifndef TVIP_AXI_SLAVE_DEFAULT_SEQUENCE_SVH
 `define TVIP_AXI_SLAVE_DEFAULT_SEQUENCE_SVH
 class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
-  protected tvip_axi_slave_item current_item;
+  protected tvip_axi_slave_item context_item[tvip_axi_access_type];
 
   task body();
+    fork
+      process_response_request(TVIP_AXI_WRITE_ACCESS);
+      process_response_request(TVIP_AXI_READ_ACCESS);
+    join
+  endtask
+
+  protected task process_response_request(tvip_axi_access_type access_type);
     forever begin
       tvip_axi_slave_item item;
-      get_request(item);
-      randomize_response(item);
+      get_request(access_type, item);
+      randomize_response(access_type, item);
       fork
         execute_response(item);
       join_none
     end
   endtask
 
-  protected virtual function randomize_response(tvip_axi_slave_item item);
+  protected virtual function randomize_response(
+    tvip_axi_access_type  access_type,
+    tvip_axi_slave_item   item
+  );
     bit               read_access;
     int               response_size;
     int               address_ready_delay;
@@ -26,20 +36,20 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
     tvip_axi_data     read_data[int];
     bit               read_data_existance[int];
 
-    current_item          = item;
-    read_access           = item.is_read();
-    response_size         = (read_access) ? item.burst_length : 1;
-    address_ready_delay   = get_address_ready_delay();
-    response_start_delay  = get_response_start_delay();
+    context_item[access_type] = item;
+    read_access               = item.is_read();
+    response_size             = (read_access) ? item.burst_length : 1;
+    address_ready_delay       = get_address_ready_delay(access_type);
+    response_start_delay      = get_response_start_delay(access_type);
     if (item.is_write()) begin
       for (int i = 0;i < item.burst_length;++i) begin
-        write_data_ready_delay[i] = get_write_data_ready_delay(i);
+        write_data_ready_delay[i] = get_write_data_ready_delay(access_type, i);
       end
     end
     for (int i = 0;i < response_size;++i) begin
-      response[i]           = get_response_status(i);
-      response_existance[i] = get_response_existence(i);
-      response_delay[i]     = get_response_delay(i);
+      response[i]           = get_response_status(access_type, i);
+      response_existance[i] = get_response_existence(access_type, i);
+      response_delay[i]     = get_response_delay(access_type, i);
       if (item.is_read()) begin
         read_data[i]            = get_read_data(i);
         read_data_existance[i]  = get_read_data_existence(i);
@@ -84,36 +94,38 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
     `uvm_send(item)
   endtask
 
-  protected virtual function int get_address_ready_delay();
+  protected virtual function int get_address_ready_delay(tvip_axi_access_type access_type);
     return -1;
   endfunction
 
-  protected virtual function int get_write_data_ready_delay(int index);
+  protected virtual function int get_write_data_ready_delay(tvip_axi_access_type access_type, int index);
     return -1;
   endfunction
 
-  protected virtual function int get_response_start_delay();
+  protected virtual function int get_response_start_delay(tvip_axi_access_type access_type);
     return -1;
   endfunction
 
-  protected virtual function int get_response_delay(int index);
+  protected virtual function int get_response_delay(tvip_axi_access_type access_type, int index);
     return -1;
   endfunction
 
-  protected virtual function tvip_axi_response get_response_status(int index);
+  protected virtual function tvip_axi_response get_response_status(tvip_axi_access_type access_type, int index);
     return TVIP_AXI_OKAY;
   endfunction
 
-  protected virtual function bit get_response_existence(int index);
+  protected virtual function bit get_response_existence(tvip_axi_access_type access_type, int index);
     return 0;
   endfunction
 
   protected virtual function tvip_axi_data get_read_data(int index);
-    return status.memory.get(current_item.burst_size, current_item.address, index);
+    tvip_axi_slave_item item  = context_item[TVIP_AXI_READ_ACCESS];
+    return status.memory.get(item.burst_size, item.address, index);
   endfunction
 
   protected virtual function bit get_read_data_existence(int index);
-    return status.memory.exists(current_item.burst_size, current_item.address, index);
+    tvip_axi_slave_item item  = context_item[TVIP_AXI_READ_ACCESS];
+    return status.memory.exists(item.burst_size, item.address, index);
   endfunction
 
   `tue_object_default_constructor(tvip_axi_slave_default_sequence)

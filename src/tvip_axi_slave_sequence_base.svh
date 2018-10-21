@@ -1,9 +1,9 @@
 `ifndef TVIP_AXI_SLAVE_SEQUENCE_BASE_SVH
 `define TVIP_AXI_SLAVE_SEQUENCE_BASE_SVH
-typedef tue_reactive_sequence #(
+typedef tue_sequence #(
   .CONFIGURATION  (tvip_axi_configuration ),
   .STATUS         (tvip_axi_status        ),
-  .ITEM           (tvip_axi_slave_item    )
+  .REQ            (tvip_axi_slave_item    )
 ) tvip_axi_slave_sequence_base_base;
 
 virtual class tvip_axi_slave_sequence_base extends tvip_axi_sequence_base #(
@@ -16,14 +16,25 @@ virtual class tvip_axi_slave_sequence_base extends tvip_axi_sequence_base #(
     set_automatic_phase_objection(0);
   endfunction
 
-  task get_request(ref tvip_axi_slave_item request);
-    super.get_request(request);
+  virtual task get_request(
+    input tvip_axi_access_type  access_type,
+    ref   tvip_axi_slave_item   request
+  );
+    p_sequencer.get_request(access_type, request);
     if (request.is_write()) begin
       request.set_sequencer(write_sequencer);
     end
     else begin
       request.set_sequencer(read_sequencer);
     end
+  endtask
+
+  virtual task get_write_request(ref tvip_axi_slave_item request);
+    get_request(TVIP_AXI_WRITE_ACCESS, request);
+  endtask
+
+  virtual task get_read_request(ref tvip_axi_slave_item request);
+    get_request(TVIP_AXI_READ_ACCESS, request);
   endtask
 endclass
 `endif
