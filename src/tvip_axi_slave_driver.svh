@@ -81,19 +81,19 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     end
 
     foreach (response_delay_buffer[i, j]) begin
-      if (response_delay_buffer[i][j].item.end_event.is_off()) begin
+      if (!response_delay_buffer[i][j].item.ended()) begin
         end_tr(response_delay_buffer[i][j].item);
       end
     end
 
     foreach (interleave_buffer[i]) begin
-      if (interleave_buffer[i].item.end_event.is_off()) begin
+      if (!interleave_buffer[i].item.ended()) begin
         end_tr(interleave_buffer[i].item);
       end
     end
 
     if (current_response_item != null) begin
-      if (current_response_item.end_event.is_off()) begin
+      if (!current_response_item.ended()) begin
         end_tr(current_response_item);
       end
     end
