@@ -10,30 +10,9 @@ FILE_LISTS	+= $(TVIP_AXI_HOME)/sample/env/compile.f
 
 SOURCE_FILES	= $(TVIP_AXI_HOME)/sample/env/top.sv
 
-VCS_ARGS	+= -full64
-VCS_ARGS	+= -sverilog
-VCS_ARGS	+= -l compile.log
-VCS_ARGS	+= -timescale=1ns/1ps
-VCS_ARGS	+= -ntb_opts uvm
-VCS_ARGS	+= +define+UVM_NO_DEPRECATED+UVM_OBJECT_MUST_HAVE_CONSTRUCTO
-VCS_ARGS	+= -top top
-
-SIMV_ARGS	+= -l sim.log
-SIMV_ARGS	+= -f test.f
-
+SIMULATOR	?= vcs
 RANDOM_SEED	?= auto
-ifeq ($(strip $(RANDOM_SEED)), auto)
-	SIMV_ARGS	+= +ntb_random_seed_automatic
-else
-	SIMV_ARGS	+= +ntb_random_seed=$(RANDOM_SEED)
-endif
-
-GUI	=? off
-ifeq ($(strip $(GUI)), dve)
-	VCS_ARGS	+= -debug_access+all
-	VCS_ARGS	+= +vcs+vcdpluson
-	SIMV_ARGS	+= -gui=dve
-endif
+GUI	?= off
 
 TESTS	+= default
 TESTS	+= write_data_delay
@@ -43,25 +22,23 @@ TESTS	+= ready_delay
 TESTS	+= out_of_order_response
 TESTS	+= read_interleave
 
-TEST_TARGETS	= $(addprefix sim_, $(TESTS))
+.PHONY: all $(TESTS) clean clean_all
 
-all: $(TEST_TARGETS)
+all: $(TESTS)
 
-$(TEST_TARGETS):
-	make run_simv TEST=$(subst sim_,,$@)
+$(TESTS):
+	make sim_$(SIMULATOR) TEST=$@
 
-run_simv:
-	if [ ! -f simv ] ; then \
-		make compile_simv; \
-	fi
-	cd $(TEST); ../simv $(SIMV_ARGS)
-
-compile_simv:
-	vcs $(VCS_ARGS) $(addprefix -f , $(FILE_LISTS)) $(SOURCE_FILES)
+CLEAN_TARGET	+= *.log
+CLEAN_ALL_TARGET += *.log
+CLEAN_ALL_TARGET += *.key
 
 clean:
-	rm -rf simv* csrc *.h *.log
+	rm -rf $(CLEAN_TARGET)
 
 clean_all:
 	make clean
-	rm -rf */*.log */*.vpd */*.key */DVEfiles */.inter.vpd.uvm
+	rm -rf $(addprefix */,$(CLEAN_ALL_TARGET))
+
+include vcs.mk
+include xcelium.mk
