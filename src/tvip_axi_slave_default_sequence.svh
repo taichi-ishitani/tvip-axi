@@ -21,7 +21,7 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
     end
   endtask
 
-  protected virtual function randomize_response(
+  protected virtual function void randomize_response(
     tvip_axi_access_type  access_type,
     tvip_axi_slave_item   item
   );
