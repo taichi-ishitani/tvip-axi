@@ -29,13 +29,16 @@ Before executing the sample environment, you need to clone submodules. Hit comma
 
 ### Execution
 
-To execute the sample environment, hit commands below on the `sample/work` directory.
+To execute the sample environment, hit command below on the `sample/work` directory.
 
     $ make
 
-Then, all sample test cases will be executed.
+Then, all sample test cases will be executed by using Synopsys VSC simulator.
+If you want to use Cadence Xcelium simulator, hit command below.
 
-You want to execute a test case individually, hit command below.
+    $ make SIMULATOR=xcelium
+
+If you want to execute a test case individually, hit command below.
 
     $ make NAME_OF_TEST_CASE
 
@@ -59,7 +62,6 @@ Supported simulators are below:
 
 * Synopsys VCS
 * Cadence Xcelium
-    * Makefile for Xcelium simulator is not available
 
 ## Contact
 
