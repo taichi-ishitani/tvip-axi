@@ -9,13 +9,10 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
   task body();
     repeat (20) begin
       fork begin
-        tvip_axi_master_access_sequence write_sequence;
-        tvip_axi_master_access_sequence read_sequence;
-        `uvm_do_with(write_sequence, {
-          access_type == TVIP_AXI_WRITE_ACCESS;
-        })
+        tvip_axi_master_write_sequence  write_sequence;
+        tvip_axi_master_read_sequence   read_sequence;
+        `uvm_do(write_sequence)
         `uvm_do_with(read_sequence, {
-          access_type  == TVIP_AXI_READ_ACCESS;
           address      == write_sequence.address;
           burst_size   == write_sequence.burst_size;
           burst_length >= write_sequence.burst_length;
