@@ -1,7 +1,7 @@
 `ifndef TVIP_AXI_UNDEF_INTERNAL_MACROS_SVH
 `define TVIP_AXI_UNDEF_INTERNAL_MACROS_SVH
 
-`undef  tvip_axi_declare_delay_size_constraints
+`undef  tvip_axi_select_delay_configuration
 `undef  tvip_axi_declare_delay_consraint
 `undef  tvip_axi_declare_delay_consraint_array
 

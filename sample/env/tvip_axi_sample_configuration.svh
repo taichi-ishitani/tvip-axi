@@ -18,66 +18,72 @@ class tvip_axi_sample_configuration extends tue_configuration;
 
   constraint c_write_data_delay {
     if (enable_write_data_delay) {
-      axi_cfg.min_write_data_delay                          == 0;
-      axi_cfg.max_write_data_delay                          == 10;
-      axi_cfg.write_data_delay_weight[TVIP_AXI_ZERO_DELAY]  == 6;
-      axi_cfg.write_data_delay_weight[TVIP_AXI_SHORT_DELAY] == 3;
-      axi_cfg.write_data_delay_weight[TVIP_AXI_LONG_DELAY]  == 1;
+      axi_cfg.write_data_delay.min_delay          == 0;
+      axi_cfg.write_data_delay.max_delay          == 10;
+      axi_cfg.write_data_delay.weight_zero_delay  == 6;
+      axi_cfg.write_data_delay.weight_short_delay == 3;
+      axi_cfg.write_data_delay.weight_long_delay  == 1;
     }
+  }
+
+  constraint c_response_weight {
+    axi_cfg.response_weight_okay         == 6;
+    axi_cfg.response_weight_exokay       == 2;
+    axi_cfg.response_weight_slave_error  == 1;
+    axi_cfg.response_weight_decode_error == 1;
   }
 
   constraint c_response_start_delay {
     if (enable_response_start_delay || enable_out_of_order_response) {
-      axi_cfg.min_response_start_delay                          == 0;
-      axi_cfg.max_response_start_delay                          == 10;
-      axi_cfg.response_start_delay_weight[TVIP_AXI_ZERO_DELAY]  == 6;
-      axi_cfg.response_start_delay_weight[TVIP_AXI_SHORT_DELAY] == 3;
-      axi_cfg.response_start_delay_weight[TVIP_AXI_LONG_DELAY]  == 1;
+      axi_cfg.response_start_delay.min_delay          == 0;
+      axi_cfg.response_start_delay.max_delay          == 10;
+      axi_cfg.response_start_delay.weight_zero_delay  == 6;
+      axi_cfg.response_start_delay.weight_short_delay == 3;
+      axi_cfg.response_start_delay.weight_long_delay  == 1;
     }
   }
 
   constraint c_response_delay {
     if (enable_response_delay) {
-      axi_cfg.min_response_delay                          == 0;
-      axi_cfg.max_response_delay                          == 10;
-      axi_cfg.response_delay_weight[TVIP_AXI_ZERO_DELAY]  == 6;
-      axi_cfg.response_delay_weight[TVIP_AXI_SHORT_DELAY] == 3;
-      axi_cfg.response_delay_weight[TVIP_AXI_LONG_DELAY]  == 1;
+      axi_cfg.response_delay.min_delay          == 0;
+      axi_cfg.response_delay.max_delay          == 10;
+      axi_cfg.response_delay.weight_zero_delay  == 6;
+      axi_cfg.response_delay.weight_short_delay == 3;
+      axi_cfg.response_delay.weight_long_delay  == 1;
     }
   }
 
   constraint c_ready_delay {
     if (enable_ready_delay) {
-      axi_cfg.min_awready_delay                          == 0;
-      axi_cfg.max_awready_delay                          == 10;
-      axi_cfg.awready_delay_weight[TVIP_AXI_ZERO_DELAY]  == 6;
-      axi_cfg.awready_delay_weight[TVIP_AXI_SHORT_DELAY] == 3;
-      axi_cfg.awready_delay_weight[TVIP_AXI_LONG_DELAY]  == 1;
+      axi_cfg.awready_delay.min_delay          == 0;
+      axi_cfg.awready_delay.max_delay          == 10;
+      axi_cfg.awready_delay.weight_zero_delay  == 6;
+      axi_cfg.awready_delay.weight_short_delay == 3;
+      axi_cfg.awready_delay.weight_long_delay  == 1;
+      
+      axi_cfg.wready_delay.min_delay          == 0;
+      axi_cfg.wready_delay.max_delay          == 10;
+      axi_cfg.wready_delay.weight_zero_delay  == 6;
+      axi_cfg.wready_delay.weight_short_delay == 3;
+      axi_cfg.wready_delay.weight_long_delay  == 1;
 
-      axi_cfg.min_wready_delay                          == 0;
-      axi_cfg.max_wready_delay                          == 10;
-      axi_cfg.wready_delay_weight[TVIP_AXI_ZERO_DELAY]  == 6;
-      axi_cfg.wready_delay_weight[TVIP_AXI_SHORT_DELAY] == 3;
-      axi_cfg.wready_delay_weight[TVIP_AXI_LONG_DELAY]  == 1;
+      axi_cfg.bready_delay.min_delay          == 0;
+      axi_cfg.bready_delay.max_delay          == 10;
+      axi_cfg.bready_delay.weight_zero_delay  == 6;
+      axi_cfg.bready_delay.weight_short_delay == 3;
+      axi_cfg.bready_delay.weight_long_delay  == 1;
 
-      axi_cfg.min_bready_delay                          == 0;
-      axi_cfg.max_bready_delay                          == 10;
-      axi_cfg.bready_delay_weight[TVIP_AXI_ZERO_DELAY]  == 6;
-      axi_cfg.bready_delay_weight[TVIP_AXI_SHORT_DELAY] == 3;
-      axi_cfg.bready_delay_weight[TVIP_AXI_LONG_DELAY]  == 1;
-
-      axi_cfg.min_arready_delay                          == 0;
-      axi_cfg.max_arready_delay                          == 10;
-      axi_cfg.arready_delay_weight[TVIP_AXI_ZERO_DELAY]  == 6;
-      axi_cfg.arready_delay_weight[TVIP_AXI_SHORT_DELAY] == 3;
-      axi_cfg.arready_delay_weight[TVIP_AXI_LONG_DELAY]  == 1;
-
-      axi_cfg.min_rready_delay                          == 0;
-      axi_cfg.max_rready_delay                          == 10;
-      axi_cfg.rready_delay_weight[TVIP_AXI_ZERO_DELAY]  == 6;
-      axi_cfg.rready_delay_weight[TVIP_AXI_SHORT_DELAY] == 3;
-      axi_cfg.rready_delay_weight[TVIP_AXI_LONG_DELAY]  == 1;
-
+      axi_cfg.arready_delay.min_delay          == 0;
+      axi_cfg.arready_delay.max_delay          == 10;
+      axi_cfg.arready_delay.weight_zero_delay  == 6;
+      axi_cfg.arready_delay.weight_short_delay == 3;
+      axi_cfg.arready_delay.weight_long_delay  == 1;
+      
+      axi_cfg.rready_delay.min_delay          == 0;
+      axi_cfg.rready_delay.max_delay          == 10;
+      axi_cfg.rready_delay.weight_zero_delay  == 6;
+      axi_cfg.rready_delay.weight_short_delay == 3;
+      axi_cfg.rready_delay.weight_long_delay  == 1;
     }
   }
 
