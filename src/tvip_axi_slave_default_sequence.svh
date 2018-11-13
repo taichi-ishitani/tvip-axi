@@ -28,13 +28,13 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
     bit               read_access;
     int               response_size;
     int               address_ready_delay;
-    int               write_data_ready_delay[int];
+    int               write_data_ready_delay[$];
     int               response_start_delay;
-    int               response_delay[int];
-    tvip_axi_response response[int];
-    bit               response_existance[int];
-    tvip_axi_data     read_data[int];
-    bit               read_data_existance[int];
+    int               response_delay[$];
+    tvip_axi_response response[$];
+    bit               response_existance[$];
+    tvip_axi_data     read_data[$];
+    bit               read_data_existance[$];
 
     context_item[access_type] = item;
     read_access               = item.is_read();
@@ -43,16 +43,16 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
     response_start_delay      = get_response_start_delay(access_type);
     if (item.is_write()) begin
       for (int i = 0;i < item.burst_length;++i) begin
-        write_data_ready_delay[i] = get_write_data_ready_delay(access_type, i);
+        write_data_ready_delay.push_back(get_write_data_ready_delay(access_type, i));
       end
     end
     for (int i = 0;i < response_size;++i) begin
-      response[i]           = get_response_status(access_type, i);
-      response_existance[i] = get_response_existence(access_type, i);
-      response_delay[i]     = get_response_delay(access_type, i);
+      response.push_back(get_response_status(access_type, i));
+      response_existance.push_back(get_response_existence(access_type, i));
+      response_delay.push_back(get_response_delay(access_type, i));
       if (item.is_read()) begin
-        read_data[i]            = get_read_data(i);
-        read_data_existance[i]  = get_read_data_existence(i);
+        read_data.push_back(get_read_data(i));
+        read_data_existance.push_back(get_read_data_existence(i));
       end
     end
 
@@ -86,7 +86,7 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
         }
       }
     }) begin
-      //  TODO
+      `uvm_fatal("RNDFLD", "Randomization failed")
     end
   endfunction
 

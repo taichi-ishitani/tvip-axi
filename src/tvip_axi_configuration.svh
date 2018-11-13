@@ -1,61 +1,153 @@
 `ifndef TVIP_AXI_CONFIGURATION_SVH
 `define TVIP_AXI_CONFIGURATION_SVH
-typedef enum {
-  TVIP_AXI_ZERO_DELAY,
-  TVIP_AXI_SHORT_DELAY,
-  TVIP_AXI_LONG_DELAY
-} tvip_axi_delay_type;
+class tvip_axi_delay_configuration extends tue_configuration;
+  rand  int max_delay;
+  rand  int mid_delay[2];
+  rand  int min_delay;
+  rand  int weight_zero_delay;
+  rand  int weight_short_delay;
+  rand  int weight_long_delay;
+
+  constraint c_valid_max_min_delay {
+    max_delay >= -1;
+    min_delay >= -1;
+    max_delay >= min_delay;
+  }
+
+  constraint c_default_max_min_delay {
+    soft max_delay == -1;
+    soft min_delay == -1;
+  }
+
+  constraint c_valid_mid_delay {
+    solve max_delay before mid_delay;
+    solve min_delay before mid_delay;
+    mid_delay[0] inside {-1, [min_delay:max_delay]};
+    mid_delay[1] inside {-1, [min_delay:max_delay]};
+    if (get_delay_delta(max_delay, min_delay) >= 1) {
+      if ((mid_delay[0] >= 0) || (mid_delay[1] >= 0)) {
+        mid_delay[0] < mid_delay[1];
+      }
+      if (get_min_delay(min_delay) == 0) {
+        mid_delay[0] > 0;
+      }
+    }
+    else {
+      mid_delay[0] == -1;
+      mid_delay[1] == -1;
+    }
+  }
+
+  constraint c_default_mid_delay {
+    soft mid_delay[0] == -1;
+    soft mid_delay[1] == -1;
+  }
+
+  constraint c_valid_weight_delay {
+    solve max_delay before weight_zero_delay, weight_short_delay, weight_long_delay;
+    solve min_delay before weight_zero_delay, weight_short_delay, weight_long_delay;
+    if (get_delay_delta(max_delay, min_delay) >= 1) {
+      weight_zero_delay  >= -1;
+      weight_short_delay >= -1;
+      weight_long_delay  >= -1;
+    }
+    else {
+      weight_zero_delay  == 0;
+      weight_short_delay == 0;
+      weight_long_delay  == 0;
+    }
+    if (min_delay > 0) {
+      weight_zero_delay == 0;
+    }
+    if ((min_delay <= 0) && (max_delay == 1)) {
+      weight_short_delay == 0;
+    }
+  }
+
+  constraint c_default_weight_delay {
+    soft weight_zero_delay  == -1;
+    soft weight_short_delay == -1;
+    soft weight_long_delay  == -1;
+  }
+
+  function void post_randomize();
+    int delay_delta;
+    weight_zero_delay   = (weight_zero_delay  == -1) ? 1 : weight_zero_delay;
+    weight_short_delay  = (weight_short_delay == -1) ? 1 : weight_short_delay;
+    weight_long_delay   = (weight_long_delay  == -1) ? 1 : weight_long_delay;
+    min_delay   = get_min_delay(min_delay);
+    max_delay   = get_max_delay(max_delay, min_delay);
+    delay_delta = get_delay_delta(max_delay, min_delay);
+    foreach (mid_delay[i]) begin
+      if (mid_delay[i] >= 0) begin
+        continue;
+      end
+      case (delay_delta)
+        0, 1: begin
+          mid_delay[i]  = (i == 0) ? min_delay : max_delay;
+        end
+        2: begin
+          mid_delay[i]  = (i == 0) ? min_delay + 1 : max_delay;
+        end
+        default: begin
+          mid_delay[i]  = min_delay + (delay_delta / 2) + i;
+        end
+      endcase
+    end
+  endfunction
+
+  local function int get_min_delay(int min_delay);
+    return (min_delay >= 0) ? min_delay : 0;
+  endfunction
+
+  local function int get_max_delay(int max_delay, int min_delay);
+    return (max_delay >= 0) ? max_delay : get_min_delay(min_delay);
+  endfunction
+
+  local function int get_delay_delta(int max_delay, int min_delay);
+    return get_max_delay(max_delay, min_delay) - get_min_delay(min_delay);
+  endfunction
+
+  `tue_object_default_constructor(tvip_axi_delay_configuration)
+  `uvm_object_utils_begin(tvip_axi_delay_configuration)
+    `uvm_field_int(max_delay, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_sarray_int(mid_delay, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(min_delay, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(weight_zero_delay, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(weight_short_delay, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(weight_long_delay, UVM_DEFAULT | UVM_DEC)
+  `uvm_object_utils_end
+endclass
 
 class tvip_axi_configuration extends tue_configuration;
-        tvip_axi_vif            vif;
-  rand  int                     id_width;
-  rand  int                     address_width;
-  rand  int                     max_burst_length;
-  rand  int                     data_width;
-  rand  int                     strobe_width;
-  rand  int                     response_weight[tvip_axi_response];
-  rand  int                     max_write_data_delay;
-  rand  int                     mid_write_data_delay[2];
-  rand  int                     min_write_data_delay;
-  rand  int                     write_data_delay_weight[tvip_axi_delay_type];
-  rand  int                     max_response_start_delay;
-  rand  int                     mid_response_start_delay[2];
-  rand  int                     min_response_start_delay;
-  rand  int                     response_start_delay_weight[tvip_axi_delay_type];
-  rand  int                     max_response_delay;
-  rand  int                     mid_response_delay[2];
-  rand  int                     min_response_delay;
-  rand  int                     response_delay_weight[tvip_axi_delay_type];
-  rand  bit                     default_awready;
-  rand  int                     max_awready_delay;
-  rand  int                     mid_awready_delay[2];
-  rand  int                     min_awready_delay;
-  rand  int                     awready_delay_weight[tvip_axi_delay_type];
-  rand  bit                     default_wready;
-  rand  int                     max_wready_delay;
-  rand  int                     mid_wready_delay[2];
-  rand  int                     min_wready_delay;
-  rand  int                     wready_delay_weight[tvip_axi_delay_type];
-  rand  bit                     default_bready;
-  rand  int                     max_bready_delay;
-  rand  int                     mid_bready_delay[2];
-  rand  int                     min_bready_delay;
-  rand  int                     bready_delay_weight[tvip_axi_delay_type];
-  rand  bit                     default_arready;
-  rand  int                     max_arready_delay;
-  rand  int                     mid_arready_delay[2];
-  rand  int                     min_arready_delay;
-  rand  int                     arready_delay_weight[tvip_axi_delay_type];
-  rand  bit                     default_rready;
-  rand  int                     max_rready_delay;
-  rand  int                     mid_rready_delay[2];
-  rand  int                     min_rready_delay;
-  rand  int                     rready_delay_weight[tvip_axi_delay_type];
-  rand  tvip_axi_ordering_mode  response_ordering;
-  rand  int                     interleave_depth;
-  rand  int                     max_interleave_size;
-  rand  int                     min_interleave_size;
-  rand  bit                     reset_by_agent;
+        tvip_axi_vif                  vif;
+  rand  int                           id_width;
+  rand  int                           address_width;
+  rand  int                           max_burst_length;
+  rand  int                           data_width;
+  rand  int                           strobe_width;
+  rand  int                           response_weight_okay;
+  rand  int                           response_weight_exokay;
+  rand  int                           response_weight_slave_error;
+  rand  int                           response_weight_decode_error;
+  rand  tvip_axi_delay_configuration  write_data_delay;
+  rand  tvip_axi_delay_configuration  response_start_delay;
+  rand  tvip_axi_delay_configuration  response_delay;
+  rand  bit                           default_awready;
+  rand  tvip_axi_delay_configuration  awready_delay;
+  rand  bit                           default_wready;
+  rand  tvip_axi_delay_configuration  wready_delay;
+  rand  bit                           default_bready;
+  rand  tvip_axi_delay_configuration  bready_delay;
+  rand  bit                           default_arready;
+  rand  tvip_axi_delay_configuration  arready_delay;
+  rand  bit                           default_rready;
+  rand  tvip_axi_delay_configuration  rready_delay;
+  rand  tvip_axi_ordering_mode        response_ordering;
+  rand  int                           interleave_depth;
+  rand  int                           max_interleave_size;
+  rand  int                           min_interleave_size;
+  rand  bit                           reset_by_agent;
 
   constraint c_valid_id_width {
     id_width inside {[0:`TVIP_AXI_MAX_ID_WIDTH]};
@@ -80,25 +172,18 @@ class tvip_axi_configuration extends tue_configuration;
   }
 
   constraint c_valid_response_weight {
-    foreach (response_weight[i]) {
-      response_weight[i] >= -1;
-    }
+    response_weight_okay         >= -1;
+    response_weight_exokay       >= -1;
+    response_weight_slave_error  >= -1;
+    response_weight_decode_error >= -1;
   }
 
   constraint c_default_response_weight {
-    foreach (response_weight[i]) {
-      soft response_weight[i] == -1;
-    }
+    soft response_weight_okay         == -1;
+    soft response_weight_exokay       == -1;
+    soft response_weight_slave_error  == -1;
+    soft response_weight_decode_error == -1;
   }
-
-  `tvip_axi_declare_delay_size_constraints(write_data    )
-  `tvip_axi_declare_delay_size_constraints(response_start)
-  `tvip_axi_declare_delay_size_constraints(response      )
-  `tvip_axi_declare_delay_size_constraints(awready       )
-  `tvip_axi_declare_delay_size_constraints(wready        )
-  `tvip_axi_declare_delay_size_constraints(bready        )
-  `tvip_axi_declare_delay_size_constraints(arready       )
-  `tvip_axi_declare_delay_size_constraints(rready        )
 
   constraint c_valid_interleave_depth {
     solve response_ordering before interleave_depth;
@@ -143,115 +228,23 @@ class tvip_axi_configuration extends tue_configuration;
 
   function new(string name = "tvip_axi_configuration");
     super.new(name);
-    response_weight[TVIP_AXI_OKAY]          = -1;
-    response_weight[TVIP_AXI_EXOKAY]        = -1;
-    response_weight[TVIP_AXI_SLAVE_ERROR]   = -1;
-    response_weight[TVIP_AXI_DECODE_ERROR]  = -1;
-    setup_initial_delay_weight();
+    write_data_delay      = tvip_axi_delay_configuration::type_id::create("write_data_delay"    );
+    response_start_delay  = tvip_axi_delay_configuration::type_id::create("response_start_delay");
+    response_delay        = tvip_axi_delay_configuration::type_id::create("response_delay"      );
+    awready_delay         = tvip_axi_delay_configuration::type_id::create("awready_delay"       );
+    wready_delay          = tvip_axi_delay_configuration::type_id::create("wready_delay"        );
+    bready_delay          = tvip_axi_delay_configuration::type_id::create("bready_delay"        );
+    arready_delay         = tvip_axi_delay_configuration::type_id::create("arready_delay"       );
+    rready_delay          = tvip_axi_delay_configuration::type_id::create("rready_delay"        );
   endfunction
 
   function void post_randomize();
     super.post_randomize();
-    foreach (response_weight[i]) begin
-      if (response_weight[i] <= -1) begin
-        response_weight[i]  = (i == TVIP_AXI_OKAY) ? 1 : 0;
-      end
-    end
-    setup_delay_configuration(
-      max_write_data_delay, mid_write_data_delay, min_write_data_delay, write_data_delay_weight
-    );
-    setup_delay_configuration(
-      max_response_start_delay, mid_response_start_delay, min_response_start_delay, response_start_delay_weight
-    );
-    setup_delay_configuration(
-      max_response_delay, mid_response_delay, min_response_delay, response_delay_weight
-    );
-    setup_delay_configuration(
-      max_awready_delay, mid_awready_delay, min_awready_delay, awready_delay_weight
-    );
-    setup_delay_configuration(
-      max_wready_delay, mid_wready_delay, min_wready_delay, wready_delay_weight
-    );
-    setup_delay_configuration(
-      max_bready_delay, mid_bready_delay, min_bready_delay, bready_delay_weight
-    );
-    setup_delay_configuration(
-      max_arready_delay, mid_arready_delay, min_arready_delay, arready_delay_weight
-    );
-    setup_delay_configuration(
-      max_rready_delay, mid_rready_delay, min_rready_delay, rready_delay_weight
-    );
-    if (interleave_depth == -1) begin
-      interleave_depth  = 1;
-    end
-  endfunction
-
-  local function void setup_initial_delay_weight();
-    tvip_axi_delay_type delay_type;
-    delay_type  = TVIP_AXI_ZERO_DELAY;
-    while (1) begin
-      write_data_delay_weight[delay_type]     = -1;
-      response_start_delay_weight[delay_type] = -1;
-      response_delay_weight[delay_type]       = -1;
-      awready_delay_weight[delay_type]        = -1;
-      wready_delay_weight[delay_type]         = -1;
-      bready_delay_weight[delay_type]         = -1;
-      arready_delay_weight[delay_type]        = -1;
-      rready_delay_weight[delay_type]         = -1;
-      if (delay_type != delay_type.last()) begin
-        delay_type  = delay_type.next();
-      end
-      else begin
-        break;
-      end
-    end
-  endfunction
-
-  local function void setup_delay_configuration(
-    ref int max_delay,
-    ref int mid_delay[2],
-    ref int min_delay,
-    ref int delay_weight[tvip_axi_delay_type]
-  );
-    int delay_delta;
-
-    min_delay   = get_min_delay(min_delay);
-    max_delay   = get_max_delay(max_delay, min_delay);
-    delay_delta = get_delay_delta(max_delay, min_delay);
-    foreach (mid_delay[i]) begin
-      if (mid_delay[i] >= 0) begin
-        continue;
-      end
-      case (delay_delta)
-        0, 1: begin
-          mid_delay[i]  = (i == 0) ? min_delay : max_delay;
-        end
-        2: begin
-          mid_delay[i]  = (i == 0) ? min_delay + 1 : max_delay;
-        end
-        default: begin
-          mid_delay[i]  = min_delay + (delay_delta / 2) + i;
-        end
-      endcase
-    end
-
-    foreach (delay_weight[i]) begin
-      if (delay_weight[i] == -1) begin
-        delay_weight[i] = 1;
-      end
-    end
-  endfunction
-
-  local function int get_min_delay(int min_delay);
-    return (min_delay >= 0) ? min_delay : 0;
-  endfunction
-
-  local function int get_max_delay(int max_delay, int min_delay);
-    return (max_delay >= 0) ? max_delay : get_min_delay(min_delay);
-  endfunction
-
-  local function int get_delay_delta(int max_delay, int min_delay);
-    return get_max_delay(max_delay, min_delay) - get_min_delay(min_delay);
+    response_weight_okay          = (response_weight_okay         >= 0) ? response_weight_okay         : 1;
+    response_weight_exokay        = (response_weight_exokay       >= 0) ? response_weight_exokay       : 0;
+    response_weight_slave_error   = (response_weight_slave_error  >= 0) ? response_weight_slave_error  : 0;
+    response_weight_decode_error  = (response_weight_decode_error >= 0) ? response_weight_decode_error : 0;
+    interleave_depth              = (response_weight_decode_error >= 0) ? interleave_depth             : 1;
   endfunction
 
   `uvm_object_utils_begin(tvip_axi_configuration)
@@ -260,44 +253,23 @@ class tvip_axi_configuration extends tue_configuration;
     `uvm_field_int(max_burst_length, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(data_width, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(strobe_width, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_aa_int_enumkey(tvip_axi_response, response_weight, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(max_write_data_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_sarray_int(mid_write_data_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(min_write_data_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_aa_int_enumkey(tvip_axi_delay_type, write_data_delay_weight, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(max_response_start_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_sarray_int(mid_response_start_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(min_response_start_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_aa_int_enumkey(tvip_axi_delay_type, response_start_delay_weight, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(max_response_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_sarray_int(mid_response_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(min_response_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_aa_int_enumkey(tvip_axi_delay_type, response_delay_weight, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(response_weight_okay, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(response_weight_exokay, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(response_weight_slave_error, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(response_weight_decode_error, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_object(write_data_delay, UVM_DEFAULT)
+    `uvm_field_object(response_start_delay, UVM_DEFAULT)
+    `uvm_field_object(response_delay, UVM_DEFAULT)
     `uvm_field_int(default_awready, UVM_DEFAULT | UVM_BIN)
-    `uvm_field_int(max_awready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_sarray_int(mid_awready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(min_awready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_aa_int_enumkey(tvip_axi_delay_type, awready_delay_weight, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_object(awready_delay, UVM_DEFAULT)
     `uvm_field_int(default_wready, UVM_DEFAULT | UVM_BIN)
-    `uvm_field_int(max_wready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_sarray_int(mid_wready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(min_wready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_aa_int_enumkey(tvip_axi_delay_type, wready_delay_weight, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_object(wready_delay, UVM_DEFAULT)
     `uvm_field_int(default_bready, UVM_DEFAULT | UVM_BIN)
-    `uvm_field_int(max_bready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_sarray_int(mid_bready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(min_bready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_aa_int_enumkey(tvip_axi_delay_type, bready_delay_weight, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_object(bready_delay, UVM_DEFAULT)
     `uvm_field_int(default_arready, UVM_DEFAULT | UVM_BIN)
-    `uvm_field_int(max_arready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_sarray_int(mid_arready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(min_arready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_aa_int_enumkey(tvip_axi_delay_type, arready_delay_weight, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_object(arready_delay, UVM_DEFAULT)
     `uvm_field_int(default_rready, UVM_DEFAULT | UVM_BIN)
-    `uvm_field_int(max_rready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_sarray_int(mid_rready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(min_rready_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_aa_int_enumkey(tvip_axi_delay_type, rready_delay_weight, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_object(rready_delay, UVM_DEFAULT)
     `uvm_field_enum(tvip_axi_ordering_mode, response_ordering, UVM_DEFAULT)
     `uvm_field_int(interleave_depth, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(max_interleave_size, UVM_DEFAULT | UVM_DEC)

@@ -66,13 +66,13 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
 
   `tvip_axi_declare_delay_consraint_array(
     write_data_delay,
-    this.configuration.min_write_data_delay,
-    this.configuration.mid_write_data_delay[0],
-    this.configuration.mid_write_data_delay[1],
-    this.configuration.max_write_data_delay,
-    this.configuration.write_data_delay_weight[TVIP_AXI_ZERO_DELAY],
-    this.configuration.write_data_delay_weight[TVIP_AXI_SHORT_DELAY],
-    this.configuration.write_data_delay_weight[TVIP_AXI_LONG_DELAY]
+    this.configuration.write_data_delay.min_delay,
+    this.configuration.write_data_delay.mid_delay[0],
+    this.configuration.write_data_delay.mid_delay[1],
+    this.configuration.write_data_delay.max_delay,
+    this.configuration.write_data_delay.weight_zero_delay,
+    this.configuration.write_data_delay.weight_short_delay,
+    this.configuration.write_data_delay.weight_long_delay
   )
 
   constraint c_response_ready_delay_order_and_valid_size {
@@ -84,13 +84,13 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
 
   `tvip_axi_declare_delay_consraint_array(
     response_ready_delay,
-    get_min_response_ready_delay(access_type),
-    get_mid_response_ready_delay(access_type, 0),
-    get_mid_response_ready_delay(access_type, 1),
-    get_max_response_ready_delay(access_type),
-    get_response_delay_weight(access_type, TVIP_AXI_ZERO_DELAY ),
-    get_response_delay_weight(access_type, TVIP_AXI_SHORT_DELAY),
-    get_response_delay_weight(access_type, TVIP_AXI_LONG_DELAY )
+    `tvip_axi_select_delay_configuration(access_type, bready_delay.min_delay         , rready_delay.min_delay         ),
+    `tvip_axi_select_delay_configuration(access_type, bready_delay.mid_delay[0]      , rready_delay.mid_delay[0]      ),
+    `tvip_axi_select_delay_configuration(access_type, bready_delay.mid_delay[1]      , rready_delay.mid_delay[1]      ),
+    `tvip_axi_select_delay_configuration(access_type, bready_delay.max_delay         , rready_delay.max_delay         ),
+    `tvip_axi_select_delay_configuration(access_type, bready_delay.weight_zero_delay , rready_delay.weight_zero_delay ),
+    `tvip_axi_select_delay_configuration(access_type, bready_delay.weight_short_delay, rready_delay.weight_short_delay),
+    `tvip_axi_select_delay_configuration(access_type, bready_delay.weight_long_delay , rready_delay.weight_long_delay )
   )
 
   function new(string name = "tvip_axi_master_access_sequence");
@@ -144,42 +144,6 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
 
   local function void copy_response(tvip_axi_master_item item);
     response  = new[item.response.size()](item.response);
-  endfunction
-
-  local function int get_min_response_ready_delay(tvip_axi_access_type access_type);
-    if (access_type == TVIP_AXI_WRITE_ACCESS) begin
-      return configuration.min_bready_delay;
-    end
-    else begin
-      return configuration.min_rready_delay;
-    end
-  endfunction
-
-  local function int get_mid_response_ready_delay(tvip_axi_access_type access_type, int index);
-    if (access_type == TVIP_AXI_WRITE_ACCESS) begin
-      return configuration.mid_bready_delay[index];
-    end
-    else begin
-      return configuration.mid_rready_delay[index];
-    end
-  endfunction
-
-  local function int get_max_response_ready_delay(tvip_axi_access_type access_type);
-    if (access_type == TVIP_AXI_WRITE_ACCESS) begin
-      return configuration.max_bready_delay;
-    end
-    else begin
-      return configuration.max_rready_delay;
-    end
-  endfunction
-
-  local function int get_response_delay_weight(tvip_axi_access_type access_type, tvip_axi_delay_type delay_type);
-    if (access_type == TVIP_AXI_WRITE_ACCESS) begin
-      return configuration.bready_delay_weight[delay_type];
-    end
-    else begin
-      return configuration.rready_delay_weight[delay_type];
-    end
   endfunction
 
   `uvm_object_utils_begin(tvip_axi_master_access_sequence)
