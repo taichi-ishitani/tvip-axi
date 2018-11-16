@@ -244,7 +244,7 @@ class tvip_axi_configuration extends tue_configuration;
     response_weight_exokay        = (response_weight_exokay       >= 0) ? response_weight_exokay       : 0;
     response_weight_slave_error   = (response_weight_slave_error  >= 0) ? response_weight_slave_error  : 0;
     response_weight_decode_error  = (response_weight_decode_error >= 0) ? response_weight_decode_error : 0;
-    interleave_depth              = (response_weight_decode_error >= 0) ? interleave_depth             : 1;
+    interleave_depth              = (interleave_depth             >= 0) ? interleave_depth             : 1;
   endfunction
 
   `uvm_object_utils_begin(tvip_axi_configuration)
