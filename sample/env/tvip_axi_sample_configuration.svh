@@ -60,7 +60,7 @@ class tvip_axi_sample_configuration extends tue_configuration;
       axi_cfg.awready_delay.weight_zero_delay  == 6;
       axi_cfg.awready_delay.weight_short_delay == 3;
       axi_cfg.awready_delay.weight_long_delay  == 1;
-      
+
       axi_cfg.wready_delay.min_delay          == 0;
       axi_cfg.wready_delay.max_delay          == 10;
       axi_cfg.wready_delay.weight_zero_delay  == 6;
@@ -78,7 +78,7 @@ class tvip_axi_sample_configuration extends tue_configuration;
       axi_cfg.arready_delay.weight_zero_delay  == 6;
       axi_cfg.arready_delay.weight_short_delay == 3;
       axi_cfg.arready_delay.weight_long_delay  == 1;
-      
+
       axi_cfg.rready_delay.min_delay          == 0;
       axi_cfg.rready_delay.max_delay          == 10;
       axi_cfg.rready_delay.weight_zero_delay  == 6;

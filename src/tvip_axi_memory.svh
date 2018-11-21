@@ -6,7 +6,7 @@ class tvip_axi_memory extends tue_object_base #(
   .STATUS         (tvip_axi_status        )
 );
   protected int               byte_width;
-  protected bit [7:0]         memory[tvip_axi_address];
+  protected byte              memory[tvip_axi_address];
   protected tvip_axi_address  address_mask[int];
 
   function void set_configuration(tue_configuration configuration);
@@ -23,8 +23,8 @@ class tvip_axi_memory extends tue_object_base #(
   );
     tvip_axi_address  address = base & get_address_mask(size);
     for (int i = 0;i < size;++i) begin
-      int memory_index  = (address + size * offset + i);
-      int byte_index    = memory_index % byte_width;
+      tvip_axi_address  memory_index  = (address + size * offset + i);
+      int               byte_index    = memory_index % byte_width;
       if (strobe[byte_index]) begin
         memory[memory_index]  = data[8*byte_index+:8];
       end
@@ -39,9 +39,9 @@ class tvip_axi_memory extends tue_object_base #(
     tvip_axi_data     data;
     tvip_axi_address  address = base & get_address_mask(size);
     for (int i = 0;i < size;++i) begin
-      int memory_index  = address + size * offset + i;
-      int byte_index    = memory_index % byte_width;
-      if (exists(size, base, offset)) begin
+      tvip_axi_address  memory_index  = address + size * offset + i;
+      int               byte_index    = memory_index % byte_width;
+      if (memory.exists(memory_index)) begin
         data[8*byte_index+:8] = memory[memory_index];
       end
     end
@@ -50,8 +50,13 @@ class tvip_axi_memory extends tue_object_base #(
 
   function bit exists(int size, tvip_axi_address base, int offset);
     tvip_axi_address  address       = base & get_address_mask(size);
-    int               memory_index  = address + size * offset;
-    return memory.exists(memory_index);
+    for (int i = 0;i < size;++i) begin
+      tvip_axi_address  memory_index  = address + size * offset + i;
+      if (memory.exists(memory_index)) begin
+        return 1;
+      end
+    end
+    return 0;
   endfunction
 
   protected function tvip_axi_address get_address_mask(int burst_size);
