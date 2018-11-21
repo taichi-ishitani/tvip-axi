@@ -312,7 +312,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
 
     response_items[id][0].store_response(get_response(), get_read_data());
     if (get_response_last()) begin
-      response_items[id][0].pack_item();
+      response_items[id][0].pack_response();
       end_response(response_items[id][0].item);
       void'(response_items[id].pop_front());
     end

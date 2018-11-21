@@ -107,7 +107,6 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
       `uvm_send(item)
       wait_for_progress(item);
     join
-    copy_response(item);
   endtask
 
   local function void create_request(ref tvip_axi_master_item item);
@@ -118,7 +117,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     item.burst_size           = burst_size;
     item.burst_type           = burst_type;
     item.response_ready_delay = new[response_ready_delay.size()](response_ready_delay);
-    if (access_type == TVIP_AXI_WRITE_ACCESS) begin
+    if (item.is_write()) begin
       item.data             = new[data.size()](data);
       item.strobe           = new[strobe.size()](strobe);
       item.write_data_delay = new[write_data_delay.size()](write_data_delay);
@@ -137,6 +136,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
       end
       begin
         item.response_end_event.wait_on();
+        copy_response(item);
         response_done_event.trigger();
       end
     join
@@ -144,6 +144,9 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
 
   local function void copy_response(tvip_axi_master_item item);
     response  = new[item.response.size()](item.response);
+    if (item.is_read()) begin
+      data  = new[item.data.size()](item.data);
+    end
   endfunction
 
   `uvm_object_utils_begin(tvip_axi_master_access_sequence)

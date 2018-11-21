@@ -51,8 +51,8 @@ virtual class tvip_axi_monitor_base #(
   virtual function void end_write_data(tvip_axi_item item);
     ITEM  temp;
     super.end_write_data(item);
-    $cast(temp, item);
     if (is_write_component()) begin
+      $cast(temp, item);
       request_item_port.write(temp);
     end
   endfunction
@@ -133,6 +133,7 @@ virtual class tvip_axi_monitor_base #(
   protected virtual task sample_write_data();
     write_items[0].store_write_data(get_write_data(), get_strobe());
     if (get_write_data_last()) begin
+      write_items[0].pack_write_data();
       end_write_data(write_items[0].item);
       void'(write_items.pop_front());
     end
@@ -154,7 +155,7 @@ virtual class tvip_axi_monitor_base #(
   protected virtual task sample_response(tvip_axi_id id);
     response_items[id][0].store_response(get_response(), get_read_data());
     if (get_response_last()) begin
-      response_items[id][0].pack_item();
+      response_items[id][0].pack_response();
       end_response(response_items[id][0].item);
       void'(response_items[id].pop_front());
     end

@@ -32,12 +32,16 @@ class tvip_axi_payload_store;
     end
   endfunction
 
-  function void pack_item();
+  function void pack_write_data();
     item.put_data(data);
-    if (item.is_write()) begin
-      item.put_strobe(strobe);
-    end
+    item.put_strobe(strobe);
+  endfunction
+
+  function void pack_response();
     item.put_response(response);
+    if (item.is_read()) begin
+      item.put_data(data);
+    end
   endfunction
 
   function int get_stored_write_data_count();

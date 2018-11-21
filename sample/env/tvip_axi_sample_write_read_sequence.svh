@@ -1,26 +1,83 @@
 `ifndef TVIP_AXI_SAMPLE_WRITE_READ_SEQUENCE_SVH
 `define TVIP_AXI_SAMPLE_WRITE_READ_SEQUENCE_SVH
 class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
+  tvip_axi_address  address_mask[int];
+
   function new(string name = "tvip_axi_sample_write_read_sequence");
     super.new(name);
     set_automatic_phase_objection(1);
   endfunction
 
   task body();
-    repeat (20) begin
-      fork begin
-        tvip_axi_master_write_sequence  write_sequence;
-        tvip_axi_master_read_sequence   read_sequence;
-        `uvm_do(write_sequence)
-        `uvm_do_with(read_sequence, {
-          address      == write_sequence.address;
-          burst_size   == write_sequence.burst_size;
-          burst_length >= write_sequence.burst_length;
-        })
-      end join_none
+    for (int i = 0;i < 20;++i) begin
+      fork
+        automatic int ii  = i;
+        do_write_read_access(ii);
+      join_none
     end
     wait fork;
   endtask
+
+  task do_write_read_access(int index);
+    tvip_axi_master_write_sequence  write_sequence;
+    tvip_axi_master_read_sequence   read_sequence;
+    `uvm_do_with(write_sequence, {
+      address >= (64'h0001_0000_0000_0000 * (index + 0) - 0);
+      address <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
+      (address + burst_size * burst_length) <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
+    })
+    `uvm_do_with(read_sequence, {
+      address      == write_sequence.address;
+      burst_size   == write_sequence.burst_size;
+      burst_length >= write_sequence.burst_length;
+    })
+    for (int i = 0;i < write_sequence.burst_length;++i) begin
+      if (!compare_data(write_sequence, read_sequence, i)) begin
+        `uvm_error("CMPDATA", "write and read data are mismatched !!")
+      end
+    end
+  endtask
+
+  function bit compare_data(
+    tvip_axi_master_write_sequence  write_sequence,
+    tvip_axi_master_read_sequence   read_sequence,
+    int                             index
+  );
+    int           burst_size;
+    int           byte_width;
+    int           byte_offset;
+
+    burst_size  = write_sequence.burst_size;
+    byte_width  = configuration.data_width / 8;
+    byte_offset = ((write_sequence.address & get_address_mask(burst_size)) + (burst_size * index)) % byte_width;
+    for (int i = 0;i < burst_size;++i) begin
+      int   byte_index  = byte_offset + i;
+      byte  write_byte;
+      byte  read_byte;
+
+      if (!write_sequence.strobe[index][byte_index]) begin
+        continue;
+      end
+
+      write_byte  = write_sequence.data[index][8*byte_index+:8];
+      read_byte   = read_sequence.data[index][8*byte_index+:8];
+      if (write_byte != read_byte) begin
+        return 0;
+      end
+    end
+
+    return 1;
+  endfunction
+
+  function tvip_axi_address get_address_mask(int burst_size);
+    if (!address_mask.exists(burst_size)) begin
+      tvip_axi_address  mask;
+      mask                      = '1;
+      mask                      = (mask >> $clog2(burst_size)) << $clog2(burst_size);
+      address_mask[burst_size]  = mask;
+    end
+    return address_mask[burst_size];
+  endfunction
 
   `uvm_object_utils(tvip_axi_sample_write_read_sequence)
 endclass
