@@ -287,11 +287,9 @@ endclass
 
 class tvip_axi_slave_item extends tvip_axi_item;
   constraint c_valid_data {
-    if (access_type == TVIP_AXI_READ_ACCESS) {
-      data.size() == burst_length;
-      foreach (data[i]) {
-        (data[i] >> this.configuration.data_width) == 0;
-      }
+    data.size() == burst_length;
+    foreach (data[i]) {
+      (data[i] >> this.configuration.data_width) == 0;
     }
   }
 
@@ -372,6 +370,7 @@ class tvip_axi_slave_item extends tvip_axi_item;
     burst_type.rand_mode(0);
     if (access_type == TVIP_AXI_WRITE_ACCESS) begin
       data.rand_mode(0);
+      c_valid_data.constraint_mode(0);
     end
     strobe.rand_mode(0);
     write_data_delay.rand_mode(0);
