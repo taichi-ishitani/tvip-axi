@@ -62,9 +62,8 @@ class tvip_axi_memory extends tue_object_base #(
   protected function tvip_axi_address get_address_mask(int burst_size);
     if (!address_mask.exists(burst_size)) begin
       tvip_axi_address  mask;
-      mask                      = '1;
-      mask                      = (mask >> $clog2(burst_size)) << $clog2(burst_size);
-      address_mask[burst_size]  = mask;
+      mask                      = burst_size - 1;
+      address_mask[burst_size]  = ~mask;
     end
     return address_mask[burst_size];
   endfunction
