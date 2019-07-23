@@ -104,13 +104,14 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     tvip_axi_master_item  item;
     create_request(item);
     fork
-      `uvm_send(item)
+      p_sequencer.dispatch(item);
       wait_for_progress(item);
     join
   endtask
 
   local function void create_request(ref tvip_axi_master_item item);
-    item                      = create_axi_item(access_type);
+    `uvm_create(item)
+    item.access_type          = access_type;
     item.id                   = id;
     item.address              = address;
     item.burst_length         = burst_length;

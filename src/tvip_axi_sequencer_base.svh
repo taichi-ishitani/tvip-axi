@@ -53,6 +53,50 @@ class tvip_axi_item_waiter #(
   `tue_component_default_constructor(tvip_axi_item_waiter)
 endclass
 
+class tvip_axi_dispatcher #(
+  type  ITEM  = uvm_sequence_item
+) extends tue_sequence #(
+  .CONFIGURATION  (tvip_axi_configuration ),
+  .STATUS         (tvip_axi_status        ),
+  .REQ            (ITEM                   )
+);
+  protected uvm_sequencer_base  write_sequencer;
+  protected uvm_sequencer_base  read_sequencer;
+
+  function new(
+    string              name,
+    uvm_sequencer_base  write_sequencer,
+    uvm_sequencer_base  read_sequencer
+  );
+    super.new(name);
+    this.write_sequencer  = write_sequencer;
+    this.read_sequencer   = read_sequencer;
+  endfunction
+
+  virtual task dispatch(
+    ITEM              item,
+    uvm_sequence_base parent_sequence = null,
+    bit               wait_for_end    = 0
+  );
+    uvm_sequencer_base  sequencer;
+    
+    sequencer = (item.is_write()) ? write_sequencer : read_sequencer;
+    if (parent_sequence == null) begin
+      parent_sequence = item.get_parent_sequence();
+    end
+    if (parent_sequence == null) begin
+      parent_sequence = this;
+    end
+
+    parent_sequence.start_item(item, -1, sequencer);
+    parent_sequence.finish_item(item, -1);
+
+    if (item.wait_for_end || wait_for_end) begin
+      item.response_end_event.wait_on();
+    end
+  endtask
+endclass
+
 virtual class tvip_axi_sequencer_base #(
   type  BASE            = uvm_sequencer,
   type  SUB_SEQEUENCER  = uvm_sequencer,
@@ -63,13 +107,13 @@ virtual class tvip_axi_sequencer_base #(
   uvm_analysis_export #(ITEM) response_item_export;
   uvm_analysis_export #(ITEM) item_export;
 
+            SUB_SEQEUENCER                write_sequencer;
+            SUB_SEQEUENCER                read_sequencer;
+  protected tvip_axi_dispatcher #(ITEM)   dispatcher;
   protected tvip_axi_item_waiter #(ITEM)  address_item_waiter;
   protected tvip_axi_item_waiter #(ITEM)  request_item_waiter;
   protected tvip_axi_item_waiter #(ITEM)  response_item_waiter;
   protected tvip_axi_item_waiter #(ITEM)  item_waiter;
-
-  SUB_SEQEUENCER  write_sequencer;
-  SUB_SEQEUENCER  read_sequencer;
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
@@ -79,6 +123,8 @@ virtual class tvip_axi_sequencer_base #(
 
     read_sequencer  = SUB_SEQEUENCER::type_id::create("read_sequencer", this);
     read_sequencer.set_context(configuration, status);
+
+    dispatcher  = new("dispatcher", write_sequencer, read_sequencer);
 
     address_item_export = new("address_item_export", this);
     address_item_waiter = new("address_item_waiter", this);
@@ -104,6 +150,14 @@ virtual class tvip_axi_sequencer_base #(
     response_item_export.connect(response_item_waiter.analysis_export);
     item_export.connect(item_waiter.analysis_export);
   endfunction
+
+  virtual task dispatch(
+    ITEM              item,
+    uvm_sequence_base parent_sequence = null,
+    bit               wait_for_end    = 0
+  );
+    dispatcher.dispatch(item, parent_sequence, wait_for_end);
+  endtask
 
   `define tvip_axi_define_item_getter_tasks(ITEM_TYPE) \
   virtual task get_``ITEM_TYPE``(ref ITEM item); \

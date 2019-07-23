@@ -91,7 +91,7 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
   endfunction
 
   protected virtual task execute_response(tvip_axi_slave_item item);
-    `uvm_send(item)
+    p_sequencer.dispatch(item, this);
   endtask
 
   protected virtual function int get_address_ready_delay(tvip_axi_access_type access_type);

@@ -31,6 +31,11 @@ virtual class tvip_axi_item extends tue_sequence_item #(
         time                  response_begin_time;
         uvm_event             response_end_event;
         time                  response_end_time;
+  rand  bit                   wait_for_end;
+
+  constraint c_default_wait_foe_end {
+    soft wait_for_end == 0;
+  }
 
   function new(string name = "tvip_axi_item");
     super.new(name);
@@ -191,6 +196,7 @@ virtual class tvip_axi_item extends tue_sequence_item #(
     `uvm_field_int(write_data_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
     `uvm_field_int(response_begin_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
     `uvm_field_int(response_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
+    `uvm_field_int(wait_for_end, UVM_DEFAULT | UVM_NOCOMPARE | UVM_NOPRINT)
   `uvm_field_utils_end
 endclass
 
@@ -287,11 +293,9 @@ endclass
 
 class tvip_axi_slave_item extends tvip_axi_item;
   constraint c_valid_data {
-    if (access_type == TVIP_AXI_READ_ACCESS) {
-      data.size() == burst_length;
-      foreach (data[i]) {
-        (data[i] >> this.configuration.data_width) == 0;
-      }
+    data.size() == burst_length;
+    foreach (data[i]) {
+      (data[i] >> this.configuration.data_width) == 0;
     }
   }
 
@@ -372,6 +376,7 @@ class tvip_axi_slave_item extends tvip_axi_item;
     burst_type.rand_mode(0);
     if (access_type == TVIP_AXI_WRITE_ACCESS) begin
       data.rand_mode(0);
+      c_valid_data.constraint_mode(0);
     end
     strobe.rand_mode(0);
     write_data_delay.rand_mode(0);
