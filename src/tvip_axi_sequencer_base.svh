@@ -70,10 +70,15 @@ virtual class tvip_axi_sequencer_base #(
 
   SUB_SEQEUENCER  write_sequencer;
   SUB_SEQEUENCER  read_sequencer;
-  SUB_SEQEUENCER  sub_sequencer[tvip_axi_access_type];
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
+
+    write_sequencer = SUB_SEQEUENCER::type_id::create("write_sequencer", this);
+    write_sequencer.set_context(configuration, status);
+
+    read_sequencer  = SUB_SEQEUENCER::type_id::create("read_sequencer", this);
+    read_sequencer.set_context(configuration, status);
 
     address_item_export = new("address_item_export", this);
     address_item_waiter = new("address_item_waiter", this);
@@ -114,14 +119,6 @@ virtual class tvip_axi_sequencer_base #(
   `tvip_axi_define_item_getter_tasks(item         )
 
   `undef  tvip_axi_define_item_getter_tasks
-
-  function void set_sub_sequencer(SUB_SEQEUENCER sequencer, tvip_axi_access_type access_type);
-    sub_sequencer[access_type]  = sequencer;
-    case (access_type)
-      TVIP_AXI_WRITE_ACCESS:  write_sequencer = sequencer;
-      TVIP_AXI_READ_ACCESS:   read_sequencer  = sequencer;
-    endcase
-  endfunction
 
   `tue_component_default_constructor(pzvip_ocp_sequencer_base)
 endclass

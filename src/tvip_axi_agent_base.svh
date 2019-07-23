@@ -36,18 +36,14 @@ virtual class tvip_axi_agent_base #(
     write_monitor.set_context(configuration, status);
     if (is_active_agent()) begin
       write_driver    = WRITE_DRIVER::type_id::create("write_driver", this);
-      write_sequencer = SUB_SEQUENCER::type_id::create("write_sequencer", this);
       write_driver.set_context(configuration, status);
-      write_sequencer.set_context(configuration, status);
     end
 
     read_monitor = READ_MONITOR::type_id::create("read_monitor", this);
     read_monitor.set_context(configuration, status);
     if (is_active_agent()) begin
       read_driver     = READ_DRIVER::type_id::create("read_driver", this);
-      read_sequencer  = SUB_SEQUENCER::type_id::create("read_sequencer", this);
       read_driver.set_context(configuration, status);
-      read_sequencer.set_context(configuration, status);
     end
   endfunction
 
@@ -60,8 +56,7 @@ virtual class tvip_axi_agent_base #(
       write_monitor.request_item_port.connect(sequencer.request_item_export);
       write_monitor.response_item_port.connect(sequencer.response_item_export);
       write_monitor.item_port.connect(sequencer.item_export);
-      write_driver.seq_item_port.connect(write_sequencer.seq_item_export);
-      sequencer.set_sub_sequencer(write_sequencer, TVIP_AXI_WRITE_ACCESS);
+      write_driver.seq_item_port.connect(sequencer.write_sequencer.seq_item_export);
     end
 
     read_monitor.item_port.connect(item_port);
@@ -70,8 +65,7 @@ virtual class tvip_axi_agent_base #(
       read_monitor.request_item_port.connect(sequencer.request_item_export);
       read_monitor.response_item_port.connect(sequencer.response_item_export);
       read_monitor.item_port.connect(sequencer.item_export);
-      read_driver.seq_item_port.connect(read_sequencer.seq_item_export);
-      sequencer.set_sub_sequencer(read_sequencer, TVIP_AXI_READ_ACCESS);
+      read_driver.seq_item_port.connect(sequencer.read_sequencer.seq_item_export);
     end
   endfunction
 
