@@ -12,15 +12,24 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
     for (int i = 0;i < 20;++i) begin
       fork
         automatic int ii  = i;
-        do_write_read_access(ii);
+        do_write_read_access_by_sequence(ii);
+      join_none
+    end
+    wait fork;
+ 
+    for (int i = 0;i < 20;++i) begin
+      fork
+        automatic int ii  = i;
+        do_write_read_access_by_item(ii);
       join_none
     end
     wait fork;
   endtask
 
-  task do_write_read_access(int index);
+  task do_write_read_access_by_sequence(int index);
     tvip_axi_master_write_sequence  write_sequence;
     tvip_axi_master_read_sequence   read_sequence;
+
     `uvm_do_with(write_sequence, {
       address >= (64'h0001_0000_0000_0000 * (index + 0) - 0);
       address <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
@@ -31,36 +40,75 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
       burst_size   == write_sequence.burst_size;
       burst_length >= write_sequence.burst_length;
     })
+
     for (int i = 0;i < write_sequence.burst_length;++i) begin
-      if (!compare_data(write_sequence, read_sequence, i)) begin
+      if (!compare_data(
+        i,
+        write_sequence.address, write_sequence.burst_size,
+        write_sequence.strobe, write_sequence.data,
+        read_sequence.data
+      )) begin
+        `uvm_error("CMPDATA", "write and read data are mismatched !!")
+      end
+    end
+  endtask
+
+  task do_write_read_access_by_item(int index);
+    tvip_axi_master_item  write_item;
+    tvip_axi_master_item  read_item;
+
+    `uvm_do_with(write_item, {
+      access_type == TVIP_AXI_WRITE_ACCESS;
+      address >= (64'h0001_0000_0000_0000 * (index + 0) - 0);
+      address <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
+      (address + burst_size * burst_length) <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
+    })
+    write_item.write_data_end_event.wait_on();
+
+    `uvm_do_with(read_item, {
+      access_type  == TVIP_AXI_READ_ACCESS;
+      address      == write_item.address;
+      burst_size   == write_item.burst_size;
+      burst_length == write_item.burst_length;
+      wait_for_end == 1;
+    })
+
+    for (int i = 0;i < write_item.burst_length;++i) begin
+      if (!compare_data(
+        i,
+        write_item.address, write_item.burst_size,
+        write_item.strobe, write_item.data,
+        read_item.data
+      )) begin
         `uvm_error("CMPDATA", "write and read data are mismatched !!")
       end
     end
   endtask
 
   function bit compare_data(
-    tvip_axi_master_write_sequence  write_sequence,
-    tvip_axi_master_read_sequence   read_sequence,
-    int                             index
+    input int               index,
+    input tvip_axi_address  address,
+    input int               burst_size,
+    ref   tvip_axi_strobe   strobe[],
+    ref   tvip_axi_data     write_data[],
+    ref   tvip_axi_data     read_data[]
   );
-    int           burst_size;
-    int           byte_width;
-    int           byte_offset;
+    int byte_width;
+    int byte_offset;
 
-    burst_size  = write_sequence.burst_size;
     byte_width  = configuration.data_width / 8;
-    byte_offset = ((write_sequence.address & get_address_mask(burst_size)) + (burst_size * index)) % byte_width;
+    byte_offset = ((address & get_address_mask(burst_size)) + (burst_size * index)) % byte_width;
     for (int i = 0;i < burst_size;++i) begin
       int   byte_index  = byte_offset + i;
       byte  write_byte;
       byte  read_byte;
 
-      if (!write_sequence.strobe[index][byte_index]) begin
+      if (!strobe[index][byte_index]) begin
         continue;
       end
 
-      write_byte  = write_sequence.data[index][8*byte_index+:8];
-      read_byte   = read_sequence.data[index][8*byte_index+:8];
+      write_byte  = write_data[index][8*byte_index+:8];
+      read_byte   = read_data[index][8*byte_index+:8];
       if (write_byte != read_byte) begin
         return 0;
       end
