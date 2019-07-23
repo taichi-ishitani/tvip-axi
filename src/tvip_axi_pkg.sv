@@ -29,6 +29,8 @@ package tvip_axi_pkg;
   `include  "tvip_axi_master_access_sequence.svh"
   `include  "tvip_axi_master_write_sequence.svh"
   `include  "tvip_axi_master_read_sequence.svh"
+  `include  "tvip_axi_master_ral_adapter.svh"
+  `include  "tvip_axi_master_ral_predictor.svh"
   `include  "tvip_axi_slave_monitor.svh"
   `include  "tvip_axi_slave_data_monitor.svh"
   `include  "tvip_axi_slave_driver.svh"
