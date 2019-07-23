@@ -55,20 +55,48 @@ virtual class tvip_axi_item extends tue_sequence_item #(
     return (access_type == TVIP_AXI_READ_ACCESS) ? '1 : '0;
   endfunction
 
+  function int get_burst_length();
+    if ((configuration != null) && (configuration.protocol == TVIP_AXI4LITE)) begin
+      return 1;
+    end
+    else begin
+      return burst_length;
+    end
+  endfunction
+
   function tvip_axi_burst_length get_packed_burst_length();
-    return pack_burst_length(burst_length);
+    return pack_burst_length(get_burst_length());
   endfunction
 
   function void set_packed_burst_length(tvip_axi_burst_length packed_burst_length);
-    burst_length  = unpack_burst_length(packed_burst_length);
+    if ((configuration != null) && (configuration.protocol == TVIP_AXI4LITE)) begin
+      burst_length  = 1;
+    end
+    else begin
+      burst_length  = unpack_burst_length(packed_burst_length);
+    end
+  endfunction
+
+  function int get_burst_size();
+    if ((configuration != null) && (configuration.protocol == TVIP_AXI4LITE)) begin
+      return configuration.data_width / 8;
+    end
+    else begin
+      return burst_size;
+    end
   endfunction
 
   function tvip_axi_burst_size get_packed_burst_size();
-    return pack_burst_size(burst_size);
+    return pack_burst_size(get_burst_size());
   endfunction
 
   function void set_packed_burst_size(tvip_axi_burst_size packed_burst_size);
-    burst_size  = unpack_burst_size(packed_burst_size);
+    if ((configuration != null) && (configuration.protocol == TVIP_AXI4LITE)) begin
+      burst_size  = configuration.data_width / 8;
+    end
+    else begin
+      burst_size  = unpack_burst_size(packed_burst_size);
+    end
   endfunction
 
   function void put_data(const ref tvip_axi_data data[$]);
@@ -210,12 +238,22 @@ class tvip_axi_master_item extends tvip_axi_item;
   }
 
   constraint c_valid_burst_length {
-    burst_length inside {[1:this.configuration.max_burst_length]};
+    if (this.configuration.protocol == TVIP_AXI4) {
+      burst_length inside {[1:this.configuration.max_burst_length]};
+    }
+    else {
+      burst_length == 1;
+    }
   }
 
   constraint c_valid_burst_size {
-    burst_size inside {1, 2, 4, 8, 16, 32, 64, 128};
-    (8 * burst_size) <= this.configuration.data_width;
+    if (this.configuration.protocol == TVIP_AXI4) {
+      burst_size inside {1, 2, 4, 8, 16, 32, 64, 128};
+      (8 * burst_size) <= this.configuration.data_width;
+    }
+    else {
+      (8 * burst_size) == this.configuration.data_width;
+    }
   }
 
   constraint c_valid_data {

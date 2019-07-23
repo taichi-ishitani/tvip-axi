@@ -153,7 +153,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
 
   protected virtual function tvip_axi_burst_length get_burst_length_value(bit valid);
     if (valid) begin
-      return pack_burst_length(current_address.burst_length);
+      return pack_burst_length(current_address.get_burst_length());
     end
     else begin
       return '0;  //  TBD
@@ -162,7 +162,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
 
   protected virtual function tvip_axi_burst_size get_burst_size_value(bit valid);
     if (valid) begin
-      return pack_burst_size(current_address.burst_size);
+      return pack_burst_size(current_address.get_burst_size());
     end
     else begin
       return TVIP_AXI_BURST_SIZE_1_BYTE;  //  TBD
@@ -240,7 +240,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
   protected virtual function bit get_write_data_last_value(bit valid);
     if (valid) begin
       return (
-        write_data_index == (current_write_data.burst_length - 1)
+        write_data_index == (current_write_data.get_burst_length() - 1)
       ) ? '1 : '0;
     end
     else begin
@@ -254,7 +254,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
   protected pure virtual task drive_write_data_last(bit last);
 
   protected virtual task finish_write_data();
-    if (write_data_index == (current_write_data.burst_length - 1)) begin
+    if (write_data_index == (current_write_data.get_burst_length() - 1)) begin
       write_data_delay  = -1;
       end_write_data(current_write_data);
       current_write_data  = null;

@@ -276,7 +276,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     end
 
     item        = interleave_buffer[id].item;
-    remainings  = (is_read_component()) ? item.burst_length - interleave_buffer[id].response_index : 1;
+    remainings  = (is_read_component()) ? item.get_burst_length() - interleave_buffer[id].response_index : 1;
     if (
       (configuration.max_interleave_size >= 0) &&
       (configuration.min_interleave_size >= 0)
@@ -479,7 +479,7 @@ class tvip_axi_read_slave_driver extends tvip_axi_slave_driver;
 
   function bit get_response_last_value(bit valid, int index);
     if (valid) begin
-      return (index == (current_response_item.burst_length - 1)) ? 1 : 0;
+      return (index == (current_response_item.get_burst_length() - 1)) ? 1 : 0;
     end
     else begin
       return 0; //  TBD

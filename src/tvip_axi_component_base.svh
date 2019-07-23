@@ -86,7 +86,12 @@ virtual class tvip_axi_component_base #(
   endfunction
 
   protected function tvip_axi_id get_address_id();
-    return (write_component) ? vif.monitor_cb.awid : vif.monitor_cb.arid;
+    if (configuration.protocol == TVIP_AXI4) begin
+      return (write_component) ? vif.monitor_cb.awid : vif.monitor_cb.arid;
+    end
+    else begin
+      return 0;
+    end
   endfunction
 
   protected function tvip_axi_address get_address();
@@ -94,19 +99,34 @@ virtual class tvip_axi_component_base #(
   endfunction
 
   protected function int get_burst_length();
-    tvip_axi_burst_length burst_length;
-    burst_length  = (write_component) ? vif.monitor_cb.awlen : vif.monitor_cb.arlen;
-    return unpack_burst_length(burst_length);
+    if (configuration.protocol == TVIP_AXI4) begin
+      tvip_axi_burst_length burst_length;
+      burst_length  = (write_component) ? vif.monitor_cb.awlen : vif.monitor_cb.arlen;
+      return unpack_burst_length(burst_length);
+    end
+    else begin
+      return 1;
+    end
   endfunction
 
   protected function int get_burst_size();
-    tvip_axi_burst_size burst_size;
-    burst_size  = (write_component) ? vif.monitor_cb.awsize : vif.monitor_cb.arsize;
-    return unpack_burst_size(burst_size);
+    if (configuration.protocol == TVIP_AXI4) begin
+      tvip_axi_burst_size burst_size;
+      burst_size  = (write_component) ? vif.monitor_cb.awsize : vif.monitor_cb.arsize;
+      return unpack_burst_size(burst_size);
+    end
+    else begin
+      return configuration.data_width / 8;
+    end
   endfunction
 
   protected function tvip_axi_burst_type get_burst_type();
-    return (write_component) ? vif.monitor_cb.awburst : vif.monitor_cb.arburst;
+    if (configuration.protocol == TVIP_AXI4) begin
+      return (write_component) ? vif.monitor_cb.awburst : vif.monitor_cb.arburst;
+    end
+    else begin
+      return TVIP_AXI_FIXED_BURST;
+    end
   endfunction
 
   protected function tvip_axi_data get_write_data();
@@ -118,11 +138,21 @@ virtual class tvip_axi_component_base #(
   endfunction
 
   protected function bit get_write_data_last();
-    return (write_component) ? vif.monitor_cb.wlast : '0;
+    if (configuration.protocol == TVIP_AXI4) begin
+      return (write_component) ? vif.monitor_cb.wlast : '0;
+    end
+    else begin
+      return (write_component) ? 1 : '0;
+    end
   endfunction
 
   protected function tvip_axi_id get_response_id();
-    return (write_component) ? vif.monitor_cb.bid : vif.monitor_cb.rid;
+    if (configuration.protocol == TVIP_AXI4) begin
+      return (write_component) ? vif.monitor_cb.bid : vif.monitor_cb.rid;
+    end
+    else begin
+      return 0;
+    end
   endfunction
 
   protected function tvip_axi_response get_response();
@@ -134,7 +164,12 @@ virtual class tvip_axi_component_base #(
   endfunction
 
   protected function bit get_response_last();
-    return (write_component) ? '1 : vif.monitor_cb.rlast;
+    if (configuration.protocol == TVIP_AXI4) begin
+      return (write_component) ? '1 : vif.monitor_cb.rlast;
+    end
+    else begin
+      return '1;
+    end
   endfunction
 
   `tue_component_default_constructor(tvip_axi_component_base)

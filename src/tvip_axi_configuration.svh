@@ -121,6 +121,7 @@ endclass
 
 class tvip_axi_configuration extends tue_configuration;
         tvip_axi_vif                  vif;
+  rand  tvip_axi_protocol             protocol;
   rand  int                           id_width;
   rand  int                           address_width;
   rand  int                           max_burst_length;
@@ -149,8 +150,16 @@ class tvip_axi_configuration extends tue_configuration;
   rand  int                           min_interleave_size;
   rand  bit                           reset_by_agent;
 
+  constraint c_default_protocol {
+    soft protocol == TVIP_AXI4;
+  }
+
   constraint c_valid_id_width {
+    solve protocol before id_width;
     id_width inside {[0:`TVIP_AXI_MAX_ID_WIDTH]};
+    if (protocol == TVIP_AXI4LITE) {
+      id_width == 0;
+    }
   }
 
   constraint c_valid_address_width {
@@ -158,12 +167,20 @@ class tvip_axi_configuration extends tue_configuration;
   }
 
   constraint c_valid_max_burst_length {
+    solve protocol before max_burst_length;
     max_burst_length inside {[1:256]};
+    if (protocol == TVIP_AXI4LITE) {
+      max_burst_length == 1;
+    }
   }
 
   constraint c_valid_data_width {
+    solve protocol before data_width;
     data_width inside {[8:1024]};
     $countones(data_width) == 1;
+    if (protocol == TVIP_AXI4LITE) {
+      data_width inside {32, 64};
+    }
   }
 
   constraint c_valid_strobe_width {
@@ -248,6 +265,7 @@ class tvip_axi_configuration extends tue_configuration;
   endfunction
 
   `uvm_object_utils_begin(tvip_axi_configuration)
+    `uvm_field_enum(tvip_axi_protocol, protocol, UVM_DEFAULT)
     `uvm_field_int(id_width, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(address_width, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(max_burst_length, UVM_DEFAULT | UVM_DEC)
