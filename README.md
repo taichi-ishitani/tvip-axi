@@ -5,6 +5,7 @@ TVIP-AXI is an UVM package of AMBA AXI4 VIP.
 ## Feature
 
 * Master and slave agent
+* Support AXI4 and AXI4-Lite protocols
 * Highly configurable
     * address width
     * data width
@@ -16,6 +17,7 @@ TVIP-AXI is an UVM package of AMBA AXI4 VIP.
     * in-order response
     * out of order response
 * Support read interleave
+* Include UVM RAL adapter and predictor
 
 ## Sample Environment
 
