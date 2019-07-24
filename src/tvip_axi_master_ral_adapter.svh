@@ -1,6 +1,9 @@
 `ifndef TVIP_AXI_MASTER_RAL_ADAPTER_SVH
 `define TVIP_AXI_MASTER_RAL_ADAPTER_SVH
 class tvip_axi_master_ral_adapter extends uvm_reg_adapter;
+  protected tvip_axi_master_sequencer axi_sequencer;
+  protected tvip_axi_configuration    axi_configuration;
+
   function new(string name = "tvip_axi_master_ral_adapter");
     super.new(name);
     supports_byte_enable  = 1;
@@ -10,18 +13,25 @@ class tvip_axi_master_ral_adapter extends uvm_reg_adapter;
   virtual function uvm_sequence_item reg2bus(const ref uvm_reg_bus_op rw);
     tvip_axi_master_item  axi_item;
 
-    axi_item              = tvip_axi_master_item::type_id::create("axi_item");
-    axi_item.address      = rw.addr;
-    axi_item.wait_for_end = 1;
-    if (rw.kind == UVM_WRITE) begin
-      axi_item.access_type  = TVIP_AXI_WRITE_ACCESS;
-      axi_item.data         = new[1];
-      axi_item.data[0]      = rw.data;
-      axi_item.strobe       = new[1];
-      axi_item.strobe[0]    = rw.byte_en;
+    if (axi_sequencer == null) begin
+      lookup_sequencer();
     end
-    else begin
-      axi_item.access_type  = TVIP_AXI_READ_ACCESS;
+
+    axi_item  = tvip_axi_master_item::type_id::create("axi_item");
+    axi_item.set_configuration(axi_configuration);
+    if (!axi_item.randomize() with {
+      address      == rw.addr;
+      wait_for_end == 1;
+      if (rw.kind == UVM_WRITE) {
+        access_type == TVIP_AXI_WRITE_ACCESS;
+        data[0]     == rw.data;
+        strobe[0]   == (rw.byte_en & ((1 << axi_configuration.strobe_width) - 1));
+      }
+      else {
+        access_type == TVIP_AXI_READ_ACCESS;
+      }
+    }) begin
+      //  TODO: print fatal message
     end
 
     return axi_item;
@@ -43,6 +53,24 @@ class tvip_axi_master_ral_adapter extends uvm_reg_adapter;
       TVIP_AXI_SLAVE_ERROR:   return UVM_NOT_OK;
       TVIP_AXI_DECODE_ERROR:  return UVM_NOT_OK;
     endcase
+  endfunction
+
+  local function void lookup_sequencer();
+    uvm_reg_item        reg_item  = get_item();
+    uvm_sequencer_base  sequencer;
+
+    sequencer = reg_item.local_map.get_sequencer(UVM_NO_HIER);
+    if (sequencer != null) begin
+      $cast(axi_sequencer, sequencer);
+      axi_configuration = axi_sequencer.get_configuration();
+      return;
+    end
+
+    sequencer = reg_item.local_map.get_sequencer(UVM_HIER);
+    if (sequencer != null) begin
+      $cast(axi_sequencer, sequencer);
+      axi_configuration = axi_sequencer.get_configuration();
+    end
   endfunction
 
   `uvm_object_utils(tvip_axi_master_ral_adapter)
