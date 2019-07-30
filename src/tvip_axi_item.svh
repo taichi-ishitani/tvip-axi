@@ -39,12 +39,12 @@ virtual class tvip_axi_item extends tue_sequence_item #(
 
   function new(string name = "tvip_axi_item");
     super.new(name);
-    address_begin_event     = events.get("address_begin");
-    address_end_event       = events.get("address_end");
-    write_data_begin_event  = events.get("write_data_begin");
-    write_data_end_event    = events.get("write_data_end");
-    response_begin_event    = events.get("response_begin");
-    response_end_event      = events.get("response_end");
+    address_begin_event     = get_event("address_begin");
+    address_end_event       = get_event("address_end");
+    write_data_begin_event  = get_event("write_data_begin");
+    write_data_end_event    = get_event("write_data_end");
+    response_begin_event    = get_event("response_begin");
+    response_end_event      = get_event("response_end");
   endfunction
 
   function bit is_write();
@@ -196,6 +196,7 @@ virtual class tvip_axi_item extends tue_sequence_item #(
         response_end_event.wait_on();
       end
       begin
+        uvm_event end_event = get_event("end");
         end_event.wait_on();
       end
     join_any

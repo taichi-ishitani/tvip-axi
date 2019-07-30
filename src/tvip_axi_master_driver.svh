@@ -84,14 +84,14 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
     end
 
     foreach (write_items[i]) begin
-      if (write_items[i].end_event.is_off()) begin
+      if (!write_items[i].ended()) begin
         end_tr(write_items[i]);
       end
     end
     write_items.delete();
 
     foreach (response_items[i, j]) begin
-      if (response_items[i][j].item.end_event.is_off()) begin
+      if (!response_items[i][j].item.ended()) begin
         end_tr(response_items[i][j].item);
       end
     end

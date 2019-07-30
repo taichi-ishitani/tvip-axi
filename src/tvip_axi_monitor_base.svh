@@ -72,14 +72,14 @@ virtual class tvip_axi_monitor_base #(
     current_address_item  = null;
 
     foreach (write_items[i]) begin
-      if (write_items[i].item.end_event.is_off()) begin
+      if (!write_items[i].item.ended()) begin
         end_tr(write_items[i].item);
       end
     end
     write_items.delete();
 
     foreach (response_items[i, j]) begin
-      if (response_items[i][j].item.end_event.is_off()) begin
+      if (!response_items[i][j].item.ended()) begin
         end_tr(response_items[i][j].item);
       end
     end

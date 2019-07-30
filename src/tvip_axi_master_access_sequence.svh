@@ -95,9 +95,9 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
 
   function new(string name = "tvip_axi_master_access_sequence");
     super.new(name);
-    address_done_event    = events.get("address_done");
-    write_data_done_event = events.get("write_data_done");
-    response_done_event   = events.get("response_done");
+    address_done_event    = get_event("address_done");
+    write_data_done_event = get_event("write_data_done");
+    response_done_event   = get_event("response_done");
   endfunction
 
   task body();
