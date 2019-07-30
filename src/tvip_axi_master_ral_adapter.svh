@@ -30,10 +30,11 @@ class tvip_axi_master_ral_adapter extends uvm_reg_adapter;
   virtual function void bus2reg(uvm_sequence_item bus_item, ref uvm_reg_bus_op rw);
     tvip_axi_master_item  axi_item;
     $cast(axi_item, bus_item);
-    rw.addr   = axi_item.address;
-    rw.kind   = (axi_item.is_write()) ? UVM_WRITE : UVM_READ;
-    rw.data   = axi_item.data[0];
-    rw.status = get_status(axi_item);
+    rw.addr     = axi_item.address;
+    rw.kind     = (axi_item.is_write()) ? UVM_WRITE : UVM_READ;
+    rw.data     = axi_item.data[0];
+    rw.byte_en  = (axi_item.is_write()) ? axi_item.strobe[0] : rw.byte_en;
+    rw.status   = get_status(axi_item);
   endfunction
 
   protected function uvm_status_e get_status(tvip_axi_master_item axi_item);
