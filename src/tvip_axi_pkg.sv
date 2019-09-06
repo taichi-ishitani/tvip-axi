@@ -1,5 +1,9 @@
 `ifndef TVIP_AXI_PKG_SV
 `define TVIP_AXI_PKG_SV
+
+`include  "tvip_axi_types_pkg.sv"
+`include  "tvip_axi_if.sv"
+
 package tvip_axi_pkg;
   import  uvm_pkg::*;
   import  tue_pkg::*;
