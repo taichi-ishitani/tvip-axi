@@ -47,11 +47,11 @@ If you want to execute a test case individually, hit command below.
 Followings are available test cases:
 
 * default
-* write_data_delay
+* request_delay
+    * sample for delayed request
     * sample for gapped write data
-* response_start_delay
-    * sample for delayed response
 * response_delay
+    * sample for delayed response
     * sample for gapped read response
 * out_of_order_response
     * sample for out of order response
