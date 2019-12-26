@@ -16,7 +16,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
 
   typedef struct {
     tvip_axi_item item;
-    int           response_index;
+    int           index;
   } interleave_buffer_item;
 
   protected tvip_axi_item               item_buffer[$];
@@ -61,9 +61,6 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
         manage_response_buffer();
         if ((current_response_item == null) && (interleave_buffer.size() >= 1)) begin
           get_next_response_item();
-        end
-        if ((current_response_item != null) && (response_delay >= 0)) begin
-          consume_response_delay();
         end
         drive_response_channel();
       end
@@ -202,14 +199,17 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
   protected pure virtual task drive_write_data_ready(bit write_data_ready);
 
   protected task manage_response_buffer();
-    foreach (response_delay_buffer[i, j]) begin
-      if (!response_delay_buffer[i][j].item.request_ended()) begin
+    foreach (response_delay_buffer[i]) begin
+      if (response_delay_buffer[i].size() == 0) begin
         continue;
       end
-      if (response_delay_buffer[i][j].start_delay <= 0) begin
+      if (!response_delay_buffer[i][0].item.request_ended()) begin
         continue;
       end
-      --response_delay_buffer[i][j].start_delay;
+      if (response_delay_buffer[i][0].start_delay <= 0) begin
+        continue;
+      end
+      --response_delay_buffer[i][0].start_delay;
     end
 
     if (item_buffer.size() == 0) begin
@@ -221,7 +221,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
 
       item                    = item_buffer.pop_front();
       buffer_item.item        = item;
-      buffer_item.start_delay = item.response_start_delay;
+      buffer_item.start_delay = item.start_delay;
       if (configuration.response_ordering == TVIP_AXI_OUT_OF_ORDER) begin
         response_delay_buffer[item.id].push_back(buffer_item);
       end
@@ -257,10 +257,10 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
         continue;
       end
 
-      buffer_item.item            = response_delay_buffer[i][0].item;
-      buffer_item.response_index  = 0;
-      interleave_buffer[id]       = buffer_item;
-      active_ids[id]              = 1;
+      buffer_item.item      = response_delay_buffer[i][0].item;
+      buffer_item.index     = 0;
+      interleave_buffer[id] = buffer_item;
+      active_ids[id]        = 1;
       void'(response_delay_buffer[i].pop_front());
     end
   endtask
@@ -276,7 +276,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     end
 
     item        = interleave_buffer[id].item;
-    remainings  = (is_read_component()) ? item.get_burst_length() - interleave_buffer[id].response_index : 1;
+    remainings  = (is_read_component()) ? item.get_burst_length() - interleave_buffer[id].index : 1;
     if (
       (configuration.max_interleave_size >= 0) &&
       (configuration.min_interleave_size >= 0)
@@ -306,20 +306,16 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     response_delay        = 0;
   endtask
 
-  protected task consume_response_delay();
-    int index = interleave_buffer[current_response_id].response_index;
-    if (response_delay < current_response_item.response_delay[index]) begin
-      ++response_delay;
-    end
-  endtask
-
   protected task drive_response_channel();
     bit valid;
     int index;
 
     if (current_response_item != null) begin
-      index = interleave_buffer[current_response_id].response_index;
-      valid = (response_delay >= current_response_item.response_delay[index]) ? 1 : 0;
+      if (response_delay > 0) begin
+        --response_delay;
+      end
+      index = interleave_buffer[current_response_id].index;
+      valid = (response_delay == 0);
     end
     else begin
       valid = 0;
@@ -365,26 +361,24 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
   protected pure virtual task drive_response_last(bit response_last);
 
   protected task finish_response();
-    int response_index;
+    int index;
 
-    interleave_buffer[current_response_id].response_index += 1;
-    response_size                                         -= 1;
+    interleave_buffer[current_response_id].index += 1;
+    response_size                                -= 1;
 
-    response_index  = interleave_buffer[current_response_id].response_index;
-    if (response_index >= current_response_item.response.size()) begin
+    index = interleave_buffer[current_response_id].index;
+    if (index >= current_response_item.response.size()) begin
       interleave_buffer.delete(current_response_id);
       active_ids.delete(current_response_id);
       end_response(current_response_item);
       current_response_item = null;
       response_size         = 0;
-      response_delay        = -1;
     end
     else if (response_size == 0) begin
       current_response_item = null;
-      response_delay        = -1;
     end
     else begin
-      response_delay  = 0;
+      response_delay  = current_response_item.response_delay[index];
     end
   endtask
 

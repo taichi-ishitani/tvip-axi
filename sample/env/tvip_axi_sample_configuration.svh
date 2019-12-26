@@ -1,6 +1,7 @@
 `ifndef TVIP_AXI_SAMPLE_CONFIGURATION_SVH
 `define TVIP_AXI_SAMPLE_CONFIGURATION_SVH
 class tvip_axi_sample_configuration extends tue_configuration;
+        bit                     enable_request_start_delay;
         bit                     enable_write_data_delay;
         bit                     enable_response_start_delay;
         bit                     enable_response_delay;
@@ -14,6 +15,16 @@ class tvip_axi_sample_configuration extends tue_configuration;
     axi_cfg.address_width    == 64;
     axi_cfg.max_burst_length == 256;
     axi_cfg.data_width       == 64;
+  }
+
+  constraint c_request_start_delay {
+    if (enable_request_start_delay) {
+      axi_cfg.request_start_delay.min_delay          == 0;
+      axi_cfg.request_start_delay.max_delay          == 10;
+      axi_cfg.request_start_delay.weight_zero_delay  == 6;
+      axi_cfg.request_start_delay.weight_short_delay == 3;
+      axi_cfg.request_start_delay.weight_long_delay  == 1;
+    }
   }
 
   constraint c_write_data_delay {
@@ -111,6 +122,9 @@ class tvip_axi_sample_configuration extends tue_configuration;
     uvm_cmdline_processor clp;
     string                values[$];
     clp = uvm_cmdline_processor::get_inst();
+    if (clp.get_arg_matches("+ENABLE_REQUEST_START_DELAY", values)) begin
+      enable_request_start_delay  = 1;
+    end
     if (clp.get_arg_matches("+ENABLE_WRITE_DATA_DELAY", values)) begin
       enable_write_data_delay = 1;
     end

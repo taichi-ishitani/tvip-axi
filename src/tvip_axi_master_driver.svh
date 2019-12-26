@@ -10,6 +10,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
   .BASE (tvip_axi_master_driver_base  )
 );
   protected tvip_axi_item           request_items[$];
+  protected int                     start_delay;
   protected tvip_axi_item           current_address;
   protected tvip_axi_item           write_items[$];
   protected tvip_axi_item           current_write_data;
@@ -20,23 +21,6 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
   protected int                     response_ready_delay;
 
   task run_phase(uvm_phase phase);
-    fork
-      queuing_thread();
-      main_thread();
-    join
-  endtask
-
-  protected task queuing_thread();
-    forever begin
-      tvip_axi_master_item  item;
-      seq_item_port.get_next_item(item);
-      accept_tr(item);
-      request_items.push_back(item);
-      seq_item_port.item_done();
-    end
-  endtask
-
-  protected task main_thread();
     forever @(vif.master_cb, negedge vif.areset_n) begin
       if (!vif.areset_n) begin
         do_reset();
@@ -55,20 +39,15 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
           sample_response();
         end
 
-        if (current_address == null) begin
-          uvm_wait_for_nba_region();
-          if (request_items.size() > 0) begin
-            get_next_request();
-          end
+        get_request_from_port();
+        if ((current_address == null) && (request_items.size() > 0)) begin
+          get_next_request();
         end
         drive_address_channel();
 
         if (is_write_component()) begin
           if ((current_write_data == null) && (write_items.size() > 0)) begin
             get_next_write_data();
-          end
-          if ((current_write_data != null) && (write_data_delay >= 0)) begin
-            consume_write_data_delay();
           end
           drive_write_data_channel();
         end
@@ -99,7 +78,8 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
 
     current_address       = null;
     current_write_data    = null;
-    write_data_delay      = -1;
+    start_delay           = 0;
+    write_data_delay      = 0;
     write_data_index      = 0;
     response_ready_delay  = -1;
 
@@ -110,9 +90,20 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
 
   protected pure virtual task reset_if();
 
+  protected task get_request_from_port();
+    uvm_wait_for_nba_region();
+    while (seq_item_port.has_do_available()) begin
+      tvip_axi_master_item  item;
+      seq_item_port.get_next_item(item);
+      accept_tr(item);
+      request_items.push_back(item);
+      seq_item_port.item_done();
+    end
+  endtask
+
   protected task get_next_request();
     current_address = request_items.pop_front();
-    begin_address(current_address);
+    start_delay     = current_address.start_delay;
 
     if (current_address.is_write()) begin
       write_items.push_back(current_address);
@@ -124,7 +115,17 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
   endtask
 
   protected task drive_address_channel();
-    bit valid = (current_address != null) ? 1 : 0;
+    bit valid;
+
+    if (start_delay > 0) begin
+      --start_delay;
+    end
+
+    valid = ((current_address != null) && (start_delay == 0));
+    if (valid && (!current_address.address_began())) begin
+      begin_address(current_address);
+    end
+
     drive_address_valid(valid);
     drive_id(get_id_value(valid));
     drive_address(get_address_value(valid));
@@ -192,23 +193,23 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
 
   protected task get_next_write_data();
     current_write_data  = write_items.pop_front();
-    write_data_delay    = 0;
+    write_data_delay    = current_write_data.write_data_delay[0];
     write_data_index    = 0;
-  endtask
-
-  protected task consume_write_data_delay();
-    if (write_data_delay < current_write_data.write_data_delay[write_data_index]) begin
-      ++write_data_delay;
-    end
   endtask
 
   protected task drive_write_data_channel();
     bit valid;
 
-    valid = (
-      (current_write_data != null) &&
-      (write_data_delay == current_write_data.write_data_delay[write_data_index])
-    ) ? '1 : 0;
+    if ((current_write_data != null) && current_write_data.address_began()) begin
+      if (write_data_delay > 0) begin
+        --write_data_delay;
+      end
+      valid = (write_data_delay == 0);
+    end
+    else begin
+      valid = 0;
+    end
+
     if (valid && (!current_write_data.write_data_began())) begin
       begin_write_data(current_write_data);
     end
@@ -255,13 +256,12 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
 
   protected virtual task finish_write_data();
     if (write_data_index == (current_write_data.get_burst_length() - 1)) begin
-      write_data_delay  = -1;
       end_write_data(current_write_data);
       current_write_data  = null;
     end
     else begin
-      write_data_delay  = 0;
       ++write_data_index;
+      write_data_delay  = current_write_data.write_data_delay[write_data_index];
     end
   endtask
 

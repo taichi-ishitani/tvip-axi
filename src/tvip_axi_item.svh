@@ -13,8 +13,8 @@ virtual class tvip_axi_item extends tue_sequence_item #(
   rand  tvip_axi_data         data[];
   rand  tvip_axi_strobe       strobe[];
   rand  tvip_axi_response     response[];
+  rand  int                   start_delay;
   rand  int                   write_data_delay[];
-  rand  int                   response_start_delay;
   rand  int                   response_delay[];
   rand  int                   address_ready_delay;
   rand  int                   write_data_ready_delay[];
@@ -213,8 +213,8 @@ virtual class tvip_axi_item extends tue_sequence_item #(
     `uvm_field_array_int(data, UVM_DEFAULT | UVM_HEX)
     `uvm_field_array_int(strobe, UVM_DEFAULT | UVM_HEX)
     `uvm_field_array_enum(tvip_axi_response, response, UVM_DEFAULT)
+    `uvm_field_int(start_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
     `uvm_field_array_int(write_data_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
-    `uvm_field_int(response_start_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
     `uvm_field_array_int(response_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
     `uvm_field_int(address_ready_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
     `uvm_field_array_int(write_data_ready_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
@@ -281,6 +281,17 @@ class tvip_axi_master_item extends tvip_axi_item;
     }
   }
 
+  `tvip_axi_declare_delay_consraint(
+    start_delay,
+    this.configuration.request_start_delay.min_delay,
+    this.configuration.request_start_delay.mid_delay[0],
+    this.configuration.request_start_delay.mid_delay[1],
+    this.configuration.request_start_delay.max_delay,
+    this.configuration.request_start_delay.weight_zero_delay,
+    this.configuration.request_start_delay.weight_short_delay,
+    this.configuration.request_start_delay.weight_long_delay
+  )
+
   constraint c_write_data_delay_order_and_valid_size {
     solve access_type  before write_data_delay;
     solve burst_length before write_data_delay;
@@ -320,7 +331,6 @@ class tvip_axi_master_item extends tvip_axi_item;
   function void pre_randomize();
     super.pre_randomize();
     response.rand_mode(0);
-    response_start_delay.rand_mode(0);
     response_delay.rand_mode(0);
     address_ready_delay.rand_mode(0);
     write_data_ready_delay.rand_mode(0);
@@ -379,7 +389,7 @@ class tvip_axi_slave_item extends tvip_axi_item;
   )
 
   `tvip_axi_declare_delay_consraint(
-    response_start_delay,
+    start_delay,
     this.configuration.response_start_delay.min_delay,
     this.configuration.response_start_delay.mid_delay[0],
     this.configuration.response_start_delay.mid_delay[1],

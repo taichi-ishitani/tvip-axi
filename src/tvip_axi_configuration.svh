@@ -131,6 +131,7 @@ class tvip_axi_configuration extends tue_configuration;
   rand  int                           response_weight_exokay;
   rand  int                           response_weight_slave_error;
   rand  int                           response_weight_decode_error;
+  rand  tvip_axi_delay_configuration  request_start_delay;
   rand  tvip_axi_delay_configuration  write_data_delay;
   rand  tvip_axi_delay_configuration  response_start_delay;
   rand  tvip_axi_delay_configuration  response_delay;
@@ -245,14 +246,15 @@ class tvip_axi_configuration extends tue_configuration;
 
   function new(string name = "tvip_axi_configuration");
     super.new(name);
-    write_data_delay      = tvip_axi_delay_configuration::type_id::create("write_data_delay"    );
+    request_start_delay   = tvip_axi_delay_configuration::type_id::create("request_start_delay");
+    write_data_delay      = tvip_axi_delay_configuration::type_id::create("write_data_delay");
     response_start_delay  = tvip_axi_delay_configuration::type_id::create("response_start_delay");
-    response_delay        = tvip_axi_delay_configuration::type_id::create("response_delay"      );
-    awready_delay         = tvip_axi_delay_configuration::type_id::create("awready_delay"       );
-    wready_delay          = tvip_axi_delay_configuration::type_id::create("wready_delay"        );
-    bready_delay          = tvip_axi_delay_configuration::type_id::create("bready_delay"        );
-    arready_delay         = tvip_axi_delay_configuration::type_id::create("arready_delay"       );
-    rready_delay          = tvip_axi_delay_configuration::type_id::create("rready_delay"        );
+    response_delay        = tvip_axi_delay_configuration::type_id::create("response_delay");
+    awready_delay         = tvip_axi_delay_configuration::type_id::create("awready_delay");
+    wready_delay          = tvip_axi_delay_configuration::type_id::create("wready_delay");
+    bready_delay          = tvip_axi_delay_configuration::type_id::create("bready_delay");
+    arready_delay         = tvip_axi_delay_configuration::type_id::create("arready_delay");
+    rready_delay          = tvip_axi_delay_configuration::type_id::create("rready_delay");
   endfunction
 
   function void post_randomize();
@@ -275,6 +277,7 @@ class tvip_axi_configuration extends tue_configuration;
     `uvm_field_int(response_weight_exokay, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(response_weight_slave_error, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(response_weight_decode_error, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_object(request_start_delay, UVM_DEFAULT)
     `uvm_field_object(write_data_delay, UVM_DEFAULT)
     `uvm_field_object(response_start_delay, UVM_DEFAULT)
     `uvm_field_object(response_delay, UVM_DEFAULT)

@@ -15,8 +15,7 @@ RANDOM_SEED	?= auto
 GUI	?= off
 
 TESTS	+= default
-TESTS	+= write_data_delay
-TESTS	+= response_start_delay
+TESTS	+= request_delay
 TESTS	+= response_delay
 TESTS	+= ready_delay
 TESTS	+= out_of_order_response

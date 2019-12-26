@@ -26,7 +26,7 @@ constraint c_valid_``DELAY { \
     } \
   } \
   else { \
-    DELAY == 0; \
+    DELAY == MIN; \
   } \
 }
 
@@ -52,7 +52,7 @@ constraint c_valid_``DELAY { \
   } \
   else { \
     foreach (DELAY[i]) { \
-      DELAY[i] == 0; \
+      DELAY[i] == MIN; \
     } \
   } \
 }

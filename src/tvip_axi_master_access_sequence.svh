@@ -10,6 +10,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
   rand  tvip_axi_data         data[];
   rand  tvip_axi_strobe       strobe[];
         tvip_axi_response     response[];
+  rand  int                   start_delay;
   rand  int                   write_data_delay[];
   rand  int                   response_ready_delay[];
         uvm_event             address_done_event;
@@ -64,6 +65,17 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     (access_type == TVIP_AXI_READ_ACCESS ) -> write_data_delay.size() == 0;
   }
 
+  `tvip_axi_declare_delay_consraint(
+    start_delay,
+    this.configuration.request_start_delay.min_delay,
+    this.configuration.request_start_delay.mid_delay[0],
+    this.configuration.request_start_delay.mid_delay[1],
+    this.configuration.request_start_delay.max_delay,
+    this.configuration.request_start_delay.weight_zero_delay,
+    this.configuration.request_start_delay.weight_short_delay,
+    this.configuration.request_start_delay.weight_long_delay
+  )
+
   `tvip_axi_declare_delay_consraint_array(
     write_data_delay,
     this.configuration.write_data_delay.min_delay,
@@ -117,6 +129,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     item.burst_length         = burst_length;
     item.burst_size           = burst_size;
     item.burst_type           = burst_type;
+    item.start_delay          = start_delay;
     item.response_ready_delay = new[response_ready_delay.size()](response_ready_delay);
     if (item.is_write()) begin
       item.data             = new[data.size()](data);
@@ -160,6 +173,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     `uvm_field_array_int(data, UVM_DEFAULT | UVM_HEX)
     `uvm_field_array_int(strobe, UVM_DEFAULT | UVM_HEX)
     `uvm_field_array_enum(tvip_axi_response, response, UVM_DEFAULT)
+    `uvm_field_int(start_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
     `uvm_field_array_int(write_data_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
     `uvm_field_array_int(response_ready_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
   `uvm_object_utils_end
