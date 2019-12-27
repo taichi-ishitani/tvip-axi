@@ -199,19 +199,6 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
   protected pure virtual task drive_write_data_ready(bit write_data_ready);
 
   protected task manage_response_buffer();
-    foreach (response_delay_buffer[i]) begin
-      if (response_delay_buffer[i].size() == 0) begin
-        continue;
-      end
-      if (!response_delay_buffer[i][0].item.request_ended()) begin
-        continue;
-      end
-      if (response_delay_buffer[i][0].start_delay <= 0) begin
-        continue;
-      end
-      --response_delay_buffer[i][0].start_delay;
-    end
-
     if (item_buffer.size() == 0) begin
       update_item_buffer();
     end
@@ -242,21 +229,25 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
       if (!response_delay_buffer[i][0].item.request_ended()) begin
         continue;
       end
+
+      if (response_delay_buffer[i][0].start_delay > 0) begin
+        --response_delay_buffer[i][0].start_delay;
+      end
+
       if (response_delay_buffer[i][0].start_delay > 0) begin
         continue;
       end
+      if (interleave_buffer.exists(response_delay_buffer[i][0].item.id)) begin
+        continue;
+      end
       if (
-        (configuration.interleave_depth >= 1                              ) &&
-        (interleave_buffer.size()       >= configuration.interleave_depth)
+        (configuration.interleave_depth >= 1) &&
+        (interleave_buffer.size() >= configuration.interleave_depth)
       ) begin
         continue;
       end
 
-      id  = response_delay_buffer[i][0].item.id;
-      if (interleave_buffer.exists(id)) begin
-        continue;
-      end
-
+      id                    = response_delay_buffer[i][0].item.id;
       buffer_item.item      = response_delay_buffer[i][0].item;
       buffer_item.index     = 0;
       interleave_buffer[id] = buffer_item;
@@ -269,14 +260,16 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     tvip_axi_id   id;
     int           remainings;
     tvip_axi_item item;
+    int           current_index;
     int           size;
 
     if (!std::randomize(id) with { active_ids[id]; }) begin
-      return;
+      `uvm_fatal("RNDFLD", "Randomization failed")
     end
 
-    item        = interleave_buffer[id].item;
-    remainings  = (is_read_component()) ? item.get_burst_length() - interleave_buffer[id].index : 1;
+    item          = interleave_buffer[id].item;
+    current_index = interleave_buffer[id].index;
+    remainings    = (is_read_component()) ? item.get_burst_length() - current_index : 1;
     if (
       (configuration.max_interleave_size >= 0) &&
       (configuration.min_interleave_size >= 0)
@@ -293,7 +286,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
           size <= configuration.max_interleave_size;
         }
       }) begin
-        return;
+        `uvm_fatal("RNDFLD", "Randomization failed")
       end
     end
     else begin
@@ -303,7 +296,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     current_response_item = item;
     current_response_id   = id;
     response_size         = size;
-    response_delay        = 0;
+    response_delay        = item.response_delay[current_index];
   endtask
 
   protected task drive_response_channel();
