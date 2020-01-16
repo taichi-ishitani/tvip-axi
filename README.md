@@ -1,3 +1,5 @@
+[![Gitter](https://badges.gitter.im/taichi-ishitani/tvip-axi.svg)](https://gitter.im/taichi-ishitani/tvip-axi?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 # TVIP-AXI
 
 TVIP-AXI is an UVM package of AMBA AXI4 VIP.
@@ -69,8 +71,9 @@ Supported simulators are below:
 
 If you have any questions, problems, feedbacks, etc., you can post them on following ways:
 
-* Create an issue on the [issue tracker](https://github.com/taichi-ishitani/tvip-axi/issues)
-* Send mail to [taichi730@gmail.com](mailto:taichi730@gmail.com)
+* [GitHub Issue Tracker](https://github.com/taichi-ishitani/tvip-axi/issues)
+* [Chat room](https://gitter.im/taichi-ishitani/tvip-axi)
+* [Mail](mailto:taichi730@gmail.com)
 
 ## Copyright
 
