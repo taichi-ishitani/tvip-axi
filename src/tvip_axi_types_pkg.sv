@@ -22,6 +22,8 @@ package tvip_axi_types_pkg;
     return int'(burst_length) + 1;
   endfunction
 
+  typedef bit [3:0] tvip_axi_qos;
+
   typedef enum bit [2:0] {
     TVIP_AXI_BURST_SIZE_1_BYTE    = 'b000,
     TVIP_AXI_BURST_SIZE_2_BYTES   = 'b001,

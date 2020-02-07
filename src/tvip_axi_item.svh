@@ -10,6 +10,7 @@ virtual class tvip_axi_item extends tue_sequence_item #(
   rand  int                   burst_length;
   rand  int                   burst_size;
   rand  tvip_axi_burst_type   burst_type;
+  rand  tvip_axi_qos          qos;
   rand  tvip_axi_data         data[];
   rand  tvip_axi_strobe       strobe[];
   rand  tvip_axi_response     response[];
@@ -210,6 +211,7 @@ virtual class tvip_axi_item extends tue_sequence_item #(
     `uvm_field_int(burst_length, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(burst_size, UVM_DEFAULT | UVM_DEC)
     `uvm_field_enum(tvip_axi_burst_type, burst_type, UVM_DEFAULT)
+    `uvm_field_int(qos, UVM_DEFAULT | UVM_DEC)
     `uvm_field_array_int(data, UVM_DEFAULT | UVM_HEX)
     `uvm_field_array_int(strobe, UVM_DEFAULT | UVM_HEX)
     `uvm_field_array_enum(tvip_axi_response, response, UVM_DEFAULT)
@@ -255,6 +257,13 @@ class tvip_axi_master_item extends tvip_axi_item;
     else {
       (8 * burst_size) == this.configuration.data_width;
     }
+  }
+
+  constraint c_valid_qos {
+    qos inside {[
+      this.configuration.qos_range[0]:
+      this.configuration.qos_range[1]
+    ]};
   }
 
   constraint c_valid_data {

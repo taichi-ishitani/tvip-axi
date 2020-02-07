@@ -107,6 +107,7 @@ virtual class tvip_axi_monitor_base #(
     current_address_item.burst_length = get_burst_length();
     current_address_item.burst_size   = get_burst_size();
     current_address_item.burst_type   = get_burst_type();
+    current_address_item.qos          = get_qos();
     begin_address(current_address_item);
 
     payload_store = tvip_axi_payload_store::create(current_address_item);

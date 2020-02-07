@@ -132,6 +132,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
     drive_burst_length(get_burst_length_value(valid));
     drive_burst_size(get_burst_size_value(valid));
     drive_burst_type(get_burst_type_value(valid));
+    drive_qos(get_qos_value(valid));
   endtask
 
   protected virtual function tvip_axi_id get_id_value(bit valid);
@@ -179,12 +180,22 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
     end
   endfunction
 
+  protected virtual function tvip_axi_qos get_qos_value(bit valid);
+    if (valid) begin
+      return current_address.qos;
+    end
+    else begin
+      return '0;  //  TBD
+    end
+  endfunction
+
   protected pure virtual task drive_address_valid(bit valid);
   protected pure virtual task drive_id(tvip_axi_id id);
   protected pure virtual task drive_address(tvip_axi_address address);
   protected pure virtual task drive_burst_length(tvip_axi_burst_length burst_length);
   protected pure virtual task drive_burst_size(tvip_axi_burst_size burst_size);
   protected pure virtual task drive_burst_type(tvip_axi_burst_type burst_type);
+  protected pure virtual task drive_qos(tvip_axi_qos qos);
 
   protected virtual task finish_address();
     end_address(current_address);
@@ -370,6 +381,10 @@ class tvip_axi_write_master_driver extends tvip_axi_master_driver;
     vif.master_cb.awburst <= burst_type;
   endtask
 
+  task drive_qos(tvip_axi_qos qos);
+    vif.master_cb.awqos <= qos;
+  endtask
+
   task drive_write_data_valid(bit valid);
     vif.master_cb.wvalid  <= valid;
   endtask
@@ -436,6 +451,10 @@ class tvip_axi_read_master_driver extends tvip_axi_master_driver;
 
   task drive_burst_type(tvip_axi_burst_type burst_type);
     vif.master_cb.arburst <= burst_type;
+  endtask
+
+  task drive_qos(tvip_axi_qos qos);
+    vif.master_cb.arqos <= qos;
   endtask
 
   task drive_write_data_valid(bit valid);

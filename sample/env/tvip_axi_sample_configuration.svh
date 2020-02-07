@@ -15,6 +15,8 @@ class tvip_axi_sample_configuration extends tue_configuration;
     axi_cfg.address_width    == 64;
     axi_cfg.max_burst_length == 256;
     axi_cfg.data_width       == 64;
+    axi_cfg.qos_range[0]     != -1;
+    axi_cfg.qos_range[1]     != -1;
   }
 
   constraint c_request_start_delay {

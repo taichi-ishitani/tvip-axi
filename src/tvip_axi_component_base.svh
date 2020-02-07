@@ -129,6 +129,10 @@ virtual class tvip_axi_component_base #(
     end
   endfunction
 
+  protected function tvip_axi_qos get_qos();
+    return (write_component) ? vif.monitor_cb.awqos : vif.monitor_cb.arqos;
+  endfunction
+
   protected function tvip_axi_data get_write_data();
     return (write_component) ? vif.monitor_cb.wdata : '0;
   endfunction

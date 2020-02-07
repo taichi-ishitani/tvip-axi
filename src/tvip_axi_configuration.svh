@@ -127,6 +127,7 @@ class tvip_axi_configuration extends tue_configuration;
   rand  int                           max_burst_length;
   rand  int                           data_width;
   rand  int                           strobe_width;
+  rand  int                           qos_range[2];
   rand  int                           response_weight_okay;
   rand  int                           response_weight_exokay;
   rand  int                           response_weight_slave_error;
@@ -187,6 +188,26 @@ class tvip_axi_configuration extends tue_configuration;
   constraint c_valid_strobe_width {
     solve data_width before strobe_width;
     strobe_width == (data_width / 8);
+  }
+
+  constraint c_valid_qos_range {
+    solve protocol before qos_range;
+    if (protocol == TVIP_AXI4LITE) {
+      qos_range[0] == 0;
+      qos_range[1] == 0;
+    }
+    else {
+      qos_range[0] <= qos_range[1];
+      foreach (qos_range[i]) {
+        qos_range[i] inside {-1, [0:15]};
+      }
+    }
+  }
+
+  constraint c_default_qos_range {
+    foreach (qos_range[i]) {
+      soft qos_range[i] == -1;
+    }
   }
 
   constraint c_valid_response_weight {
@@ -259,6 +280,8 @@ class tvip_axi_configuration extends tue_configuration;
 
   function void post_randomize();
     super.post_randomize();
+    qos_range[0]                  = (qos_range[0]                 >= 0) ? qos_range[0]                 : 0;
+    qos_range[1]                  = (qos_range[1]                 >= 0) ? qos_range[1]                 : 0;
     response_weight_okay          = (response_weight_okay         >= 0) ? response_weight_okay         : 1;
     response_weight_exokay        = (response_weight_exokay       >= 0) ? response_weight_exokay       : 0;
     response_weight_slave_error   = (response_weight_slave_error  >= 0) ? response_weight_slave_error  : 0;
@@ -273,6 +296,7 @@ class tvip_axi_configuration extends tue_configuration;
     `uvm_field_int(max_burst_length, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(data_width, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(strobe_width, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_sarray_int(qos_range, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(response_weight_okay, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(response_weight_exokay, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(response_weight_slave_error, UVM_DEFAULT | UVM_DEC)

@@ -15,6 +15,7 @@ interface tvip_axi_if (
   tvip_axi_burst_length awlen;
   tvip_axi_burst_size   awsize;
   tvip_axi_burst_type   awburst;
+  tvip_axi_qos          awqos;
   //  Write Data Channel
   bit                   wvalid;
   bit                   wready;
@@ -37,6 +38,7 @@ interface tvip_axi_if (
   tvip_axi_burst_length arlen;
   tvip_axi_burst_size   arsize;
   tvip_axi_burst_type   arburst;
+  tvip_axi_qos          arqos;
   //  Read Data Channel
   bit                   rvalid;
   bit                   rready;
@@ -61,6 +63,7 @@ interface tvip_axi_if (
     output  awlen;
     output  awsize;
     output  awburst;
+    output  awqos;
     output  wvalid;
     input   wready;
     input   wack;
@@ -80,6 +83,7 @@ interface tvip_axi_if (
     output  arlen;
     output  arsize;
     output  arburst;
+    output  arqos;
     input   rvalid;
     output  rready;
     input   rack;
@@ -98,6 +102,7 @@ interface tvip_axi_if (
     input   awlen;
     input   awsize;
     input   awburst;
+    input   awqos;
     input   wvalid;
     output  wready;
     input   wack;
@@ -117,6 +122,7 @@ interface tvip_axi_if (
     input   arlen;
     input   arsize;
     input   arburst;
+    input   arqos;
     output  rvalid;
     input   rready;
     input   rack;
@@ -135,6 +141,7 @@ interface tvip_axi_if (
     input awlen;
     input awsize;
     input awburst;
+    input awqos;
     input wvalid;
     input wready;
     input wack;
@@ -154,6 +161,7 @@ interface tvip_axi_if (
     input arlen;
     input arsize;
     input arburst;
+    input arqos;
     input rvalid;
     input rready;
     input rack;

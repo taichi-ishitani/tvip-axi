@@ -7,6 +7,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
   rand  int                   burst_length;
   rand  int                   burst_size;
   rand  tvip_axi_burst_type   burst_type;
+  rand  tvip_axi_qos          qos;
   rand  tvip_axi_data         data[];
   rand  tvip_axi_strobe       strobe[];
         tvip_axi_response     response[];
@@ -26,16 +27,33 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
   }
 
   constraint c_valid_burst_length {
-    burst_length inside {[1:this.configuration.max_burst_length]};
+    if (this.configuration.protocol == TVIP_AXI4) {
+      burst_length inside {[1:this.configuration.max_burst_length]};
+    }
+    else {
+      burst_length == 1;
+    }
   }
 
   constraint c_valid_burst_size {
-    burst_size inside {1, 2, 4, 8, 16, 32, 64, 128};
-    (8 * burst_size) <= this.configuration.data_width;
+    if (this.configuration.protocol == TVIP_AXI4) {
+      burst_size inside {1, 2, 4, 8, 16, 32, 64, 128};
+      (8 * burst_size) <= this.configuration.data_width;
+    }
+    else {
+      (8 * burst_size) == this.configuration.data_width;
+    }
   }
 
   constraint c_default_burst_type {
     burst_type == TVIP_AXI_INCREMENTING_BURST;
+  }
+
+  constraint c_valid_qos {
+    qos inside {[
+      this.configuration.qos_range[0]:
+      this.configuration.qos_range[1]
+    ]};
   }
 
   constraint c_valid_data {
@@ -129,6 +147,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     item.burst_length         = burst_length;
     item.burst_size           = burst_size;
     item.burst_type           = burst_type;
+    item.qos                  = qos;
     item.start_delay          = start_delay;
     item.response_ready_delay = new[response_ready_delay.size()](response_ready_delay);
     if (item.is_write()) begin
@@ -170,6 +189,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     `uvm_field_int(burst_length, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(burst_size, UVM_DEFAULT | UVM_DEC)
     `uvm_field_enum(tvip_axi_burst_type, burst_type, UVM_DEFAULT)
+    `uvm_field_int(qos, UVM_DEFAULT | UVM_DEC)
     `uvm_field_array_int(data, UVM_DEFAULT | UVM_HEX)
     `uvm_field_array_int(strobe, UVM_DEFAULT | UVM_HEX)
     `uvm_field_array_enum(tvip_axi_response, response, UVM_DEFAULT)
