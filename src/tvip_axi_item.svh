@@ -259,6 +259,13 @@ class tvip_axi_master_item extends tvip_axi_item;
     }
   }
 
+  constraint c_4kb_boundary {
+    (
+      (address & TVIP_AXI_4KB_BOUNDARY_MASK[burst_size]) +
+      (burst_length * burst_size)
+    ) <= 4096;
+  }
+
   constraint c_valid_qos {
     qos inside {[
       this.configuration.qos_range[0]:

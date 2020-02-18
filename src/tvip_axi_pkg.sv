@@ -14,6 +14,17 @@ package tvip_axi_pkg;
 
   typedef virtual tvip_axi_if tvip_axi_vif;
 
+  localparam  tvip_axi_address  TVIP_AXI_4KB_BOUNDARY_MASK[int] = '{
+      1:  tvip_axi_address'('h3FF),
+      2:  tvip_axi_address'('h3FE),
+      4:  tvip_axi_address'('h3FC),
+      8:  tvip_axi_address'('h3F8),
+     16:  tvip_axi_address'('h3F0),
+     32:  tvip_axi_address'('h3E0),
+     64:  tvip_axi_address'('h3C0),
+    128:  tvip_axi_address'('h380)
+  };
+
   `include  "tvip_axi_internal_macros.svh"
   `include  "tvip_axi_configuration.svh"
   `include  "tvip_axi_status.svh"

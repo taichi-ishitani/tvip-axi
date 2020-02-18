@@ -45,6 +45,13 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     }
   }
 
+  constraint c_4kb_boundary {
+    (
+      (address & TVIP_AXI_4KB_BOUNDARY_MASK[burst_size]) +
+      (burst_length * burst_size)
+    ) <= 4096;
+  }
+
   constraint c_default_burst_type {
     burst_type == TVIP_AXI_INCREMENTING_BURST;
   }
