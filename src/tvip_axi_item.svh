@@ -261,7 +261,7 @@ class tvip_axi_master_item extends tvip_axi_item;
 
   constraint c_4kb_boundary {
     (
-      (address & TVIP_AXI_4KB_BOUNDARY_MASK[burst_size]) +
+      (address & `tvip_axi_4kb_boundary_mask(burst_size)) +
       (burst_length * burst_size)
     ) <= 4096;
   }

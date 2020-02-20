@@ -1,6 +1,9 @@
 `ifndef TVIP_AXI_INTERNAL_MACROS_SVH
 `define TVIP_AXI_INTERNAL_MACROS_SVH
 
+`define tvip_axi_4kb_boundary_mask(BURST_SIZE) \
+(tvip_axi_address'('h1000 - BURST_SIZE))
+
 `define tvip_axi_select_delay_configuration(ACCESS_TYPE, WRITE_CONFIGURATION, READ_CONFIGURATION) \
 ( \
   (ACCESS_TYPE == TVIP_AXI_WRITE_ACCESS) ? this.configuration.WRITE_CONFIGURATION \
