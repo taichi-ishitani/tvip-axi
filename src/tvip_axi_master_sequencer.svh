@@ -23,9 +23,9 @@ class tvip_axi_master_sequencer extends tvip_axi_sequencer_base #(
   task run_phase(uvm_phase phase);
     tvip_axi_master_item  item;
     forever begin
-      get_next_item(item);
+      seq_item_export.get_next_item(item);
       dispatch_item(item);
-      item_done();
+      seq_item_export.item_done();
     end
   endtask
 

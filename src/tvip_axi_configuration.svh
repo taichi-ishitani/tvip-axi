@@ -178,8 +178,9 @@ class tvip_axi_configuration extends tue_configuration;
 
   constraint c_valid_data_width {
     solve protocol before data_width;
-    data_width inside {[8:1024]};
-    $countones(data_width) == 1;
+    data_width inside {
+      8, 16, 32, 64, 128, 256, 512, 1024
+    };
     if (protocol == TVIP_AXI4LITE) {
       data_width inside {32, 64};
     }

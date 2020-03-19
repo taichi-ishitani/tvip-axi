@@ -17,6 +17,10 @@ virtual class tvip_axi_slave_monitor extends tvip_axi_monitor_base #(
     write_request(temp);
   endfunction
 
+  function void write_request(tvip_axi_slave_item item);
+    super.write_request(item);
+  endfunction
+
   `tue_component_default_constructor(tvip_axi_master_monitor)
 endclass
 

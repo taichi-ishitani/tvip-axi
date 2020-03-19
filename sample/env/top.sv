@@ -1,5 +1,6 @@
 module top();
-  timeunit  1ns/1ps;
+  timeunit 1ns;
+  timeprecision 1ps;
 
   import  uvm_pkg::*;
   import  tue_pkg::*;

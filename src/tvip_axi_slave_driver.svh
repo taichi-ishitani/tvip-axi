@@ -29,7 +29,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
   protected int                         write_data_ready_delay_queue[$];
   protected response_delay_buffer_item  response_delay_buffer[tvip_axi_id][$];
   protected interleave_buffer_item      interleave_buffer[tvip_axi_id];
-  protected bit                         active_ids[tvip_axi_id];
+  protected tvip_axi_id                 active_ids[tvip_axi_id];
   protected tvip_axi_item               current_response_item;
   protected tvip_axi_id                 current_response_id;
   protected int                         response_size;
@@ -251,7 +251,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
       buffer_item.item      = response_delay_buffer[i][0].item;
       buffer_item.index     = 0;
       interleave_buffer[id] = buffer_item;
-      active_ids[id]        = 1;
+      active_ids[id]        = id;
       void'(response_delay_buffer[i].pop_front());
     end
   endtask
@@ -263,7 +263,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     int           current_index;
     int           size;
 
-    if (!std::randomize(id) with { active_ids[id]; }) begin
+    if (!std::randomize(id) with { id inside {active_ids}; }) begin
       `uvm_fatal("RNDFLD", "Randomization failed")
     end
 

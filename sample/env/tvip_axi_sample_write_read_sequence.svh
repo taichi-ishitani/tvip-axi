@@ -30,12 +30,12 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
     tvip_axi_master_write_sequence  write_sequence;
     tvip_axi_master_read_sequence   read_sequence;
 
-    `uvm_do_with(write_sequence, {
+    `tue_do_with(write_sequence, {
       address >= (64'h0001_0000_0000_0000 * (index + 0) - 0);
       address <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
       (address + burst_size * burst_length) <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
     })
-    `uvm_do_with(read_sequence, {
+    `tue_do_with(read_sequence, {
       address      == write_sequence.address;
       burst_size   == write_sequence.burst_size;
       burst_length >= write_sequence.burst_length;
@@ -57,7 +57,7 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
     tvip_axi_master_item  write_item;
     tvip_axi_master_item  read_item;
 
-    `uvm_do_with(write_item, {
+    `tue_do_with(write_item, {
       access_type == TVIP_AXI_WRITE_ACCESS;
       address >= (64'h0001_0000_0000_0000 * (index + 0) - 0);
       address <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
@@ -65,7 +65,7 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
     })
     write_item.write_data_end_event.wait_on();
 
-    `uvm_do_with(read_item, {
+    `tue_do_with(read_item, {
       access_type  == TVIP_AXI_READ_ACCESS;
       address      == write_item.address;
       burst_size   == write_item.burst_size;

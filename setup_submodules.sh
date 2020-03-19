@@ -1,6 +1,6 @@
 #! /bin/bash -f
 submodules=(
-  "https://github.com/taichi-ishitani/tue.git tue c4ce84ebd2cb52c7fb97f0c32101f53141d85132"
+  "https://github.com/taichi-ishitani/tue.git tue 24a2bf157df6a84f8b6d7d260d83d1af3733556e"
 )
 
 for ((i=0; $i < ${#submodules[*]}; i++)) do

@@ -147,7 +147,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
   endtask
 
   local function void create_request(ref tvip_axi_master_item item);
-    `uvm_create(item)
+    `tue_create(item)
     item.access_type          = access_type;
     item.id                   = id;
     item.address              = address;
