@@ -12,6 +12,7 @@ SOURCE_FILES	= $(TVIP_AXI_HOME)/sample/env/top.sv
 
 SIMULATOR	?= vcs
 RANDOM_SEED	?= auto
+DUMP	?= off
 GUI	?= off
 
 TESTS	+= default

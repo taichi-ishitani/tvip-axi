@@ -1,4 +1,5 @@
 VCS_ARGS	+= -full64
+VCS_ARGS	+= -lca
 VCS_ARGS	+= -sverilog
 VCS_ARGS	+= -l compile.log
 VCS_ARGS	+= -timescale=1ns/1ps
@@ -13,6 +14,12 @@ ifeq ($(strip $(RANDOM_SEED)), auto)
 	SIMV_ARGS	+= +ntb_random_seed_automatic
 else
 	SIMV_ARGS	+= +ntb_random_seed=$(RANDOM_SEED)
+endif
+
+ifeq ($(strip $(DUMP)), vpd)
+	VCS_ARGS	+= -debug_access
+	VCS_ARGS	+= +vcs+vcdpluson
+	SIMV_ARGS	+= -vpd_file dump.vpd
 endif
 
 ifeq ($(strip $(GUI)), dve)
