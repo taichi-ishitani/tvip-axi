@@ -22,10 +22,24 @@ ifeq ($(strip $(DUMP)), vpd)
 	SIMV_ARGS	+= -vpd_file dump.vpd
 endif
 
+ifeq ($(strip $(DUMP)), fsdb)
+	VCS_ARGS	+= -debug_access
+	VCS_ARGS	+= -kdb
+	VCS_ARGS	+= +vcs+fsdbon
+	SIMV_ARGS	+= +fsdbfile+dump.fsdb
+endif
+
 ifeq ($(strip $(GUI)), dve)
 	VCS_ARGS	+= -debug_access+all
 	VCS_ARGS	+= +vcs+vcdpluson
 	SIMV_ARGS	+= -gui=dve
+endif
+
+ifeq ($(strip $(GUI)), verdi)
+	VCS_ARGS	+= -debug_access+all
+	VCS_ARGS	+= -kdb
+	VCS_ARGS	+= +vcs+fsdbon
+	SIMV_ARGS	+= -gui=verdi
 endif
 
 CLEAN_TARGET	+= simv*
@@ -33,8 +47,12 @@ CLEAN_TARGET	+= csrc
 CLEAN_TARGET	+= *.h
 
 CLEAN_ALL_TARGET += *.vpd
+CLEAN_ALL_TARGET += *.fsdb
 CLEAN_ALL_TARGET += *.key
+CLEAN_ALL_TARGET += *.conf
+CLEAN_ALL_TARGET += *.rc
 CLEAN_ALL_TARGET += DVEfiles
+CLEAN_ALL_TARGET += verdiLog
 CLEAN_ALL_TARGET += .inter.vpd.uvm
 
 .PHONY: sim_vcs compile_vcs
