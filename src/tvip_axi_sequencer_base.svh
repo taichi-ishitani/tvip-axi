@@ -1,53 +1,12 @@
 `ifndef TVIP_AXI_SEQUENCER_BASE_SVH
 `define TVIP_AXI_SEQUENCER_BASE_SVH
-class tvip_axi_item_waiter extends tue_subscriber #(
-  .CONFIGURATION  (tvip_axi_configuration ),
-  .STATUS         (tvip_axi_status        ),
-  .T              (tvip_axi_item          )
+class tvip_axi_item_waiter extends tvip_item_waiter #(
+  .ITEM (tvip_axi_item  ),
+  .ID   (tvip_axi_id    )
 );
-  protected uvm_event waiters[$];
-  protected uvm_event id_waiters[tvip_axi_id][$];
-
-  function void write(tvip_axi_item t);
-    while (waiters.size() > 0) begin
-      uvm_event waiter  = waiters.pop_front();
-      waiter.trigger(t);
-    end
-
-    if (!id_waiters.exists(t.id)) begin
-      return;
-    end
-
-    while (id_waiters[t.id].size() > 0) begin
-      uvm_event waiter  = id_waiters[t.id].pop_front();
-      waiter.trigger(t);
-    end
+  protected function tvip_axi_id get_id_from_item(tvip_axi_item item);
+    return item.id;
   endfunction
-
-  task get_item(ref tvip_axi_item  item);
-    uvm_event waiter  = get_waiter();
-    waiter.wait_on();
-    $cast(item, waiter.get_trigger_data());
-  endtask
-
-  task get_item_by_id(ref tvip_axi_item item, input tvip_axi_id id);
-    uvm_event waiter  = get_id_waiter(id);
-    waiter.wait_on();
-    $cast(item, waiter.get_trigger_data());
-  endtask
-
-  protected function uvm_event get_waiter();
-    uvm_event waiter  = new();
-    waiters.push_back(waiter);
-    return waiter;
-  endfunction
-
-  protected function uvm_event get_id_waiter(tvip_axi_id id);
-    uvm_event waiter  = new();
-    id_waiters[id].push_back(waiter);
-    return waiter;
-  endfunction
-
   `tue_component_default_constructor(tvip_axi_item_waiter)
 endclass
 
@@ -126,19 +85,15 @@ virtual class tvip_axi_sequencer_base #(
 
     address_item_export = new("address_item_export", this);
     address_item_waiter = new("address_item_waiter", this);
-    address_item_waiter.set_context(configuration, status);
 
     request_item_export = new("request_item_export", this);
     request_item_waiter = new("request_item_waiter", this);
-    request_item_waiter.set_context(configuration, status);
 
     response_item_export  = new("response_item_export", this);
     response_item_waiter  = new("response_item_waiter", this);
-    response_item_waiter.set_context(configuration, status);
 
     item_export = new("item_export", this);
     item_waiter = new("item_waiter", this);
-    item_waiter.set_context(configuration, status);
   endfunction
 
   function void connect_phase(uvm_phase phase);

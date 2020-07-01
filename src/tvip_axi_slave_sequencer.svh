@@ -35,8 +35,6 @@ class tvip_axi_slave_sequencer extends tvip_axi_sequencer_base #(
 
     write_request_waiter  = new("write_request_waiter", this);
     read_request_waiter   = new("read_request_waiter" , this);
-    write_request_waiter.set_context(configuration, status);
-    read_request_waiter.set_context(configuration, status);
 
     request_waiter[TVIP_AXI_WRITE_ACCESS] = write_request_waiter;
     request_waiter[TVIP_AXI_READ_ACCESS ] = read_request_waiter;
