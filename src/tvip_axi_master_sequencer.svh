@@ -17,23 +17,15 @@ typedef tue_sequencer #(
 
 class tvip_axi_master_sequencer extends tvip_axi_sequencer_base #(
   .BASE           (tvip_axi_master_sequencer_base ),
-  .SUB_SEQEUENCER (tvip_axi_master_sub_sequencer  ),
-  .ITEM           (tvip_axi_master_item           )
+  .SUB_SEQEUENCER (tvip_axi_master_sub_sequencer  )
 );
   task run_phase(uvm_phase phase);
     tvip_axi_master_item  item;
     forever begin
       seq_item_export.get_next_item(item);
-      dispatch_item(item);
+      dispatch(item);
       seq_item_export.item_done();
     end
-  endtask
-
-  local task dispatch_item(tvip_axi_master_item item);
-    int sequence_id;
-    sequence_id = item.get_sequence_id();
-    dispatch(item);
-    item.set_sequence_id(sequence_id);
   endtask
 
   `tue_component_default_constructor(tvip_axi_master_sequencer)

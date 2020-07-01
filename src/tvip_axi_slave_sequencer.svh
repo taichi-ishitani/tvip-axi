@@ -17,8 +17,7 @@ typedef tue_sequencer #(
 
 class tvip_axi_slave_sequencer extends tvip_axi_sequencer_base #(
   .BASE           (tvip_axi_slave_sequencer_base  ),
-  .SUB_SEQEUENCER (tvip_axi_slave_sub_sequencer   ),
-  .ITEM           (tvip_axi_slave_item            )
+  .SUB_SEQEUENCER (tvip_axi_slave_sub_sequencer   )
 );
   uvm_analysis_imp #(
     tvip_axi_item, tvip_axi_slave_sequencer
