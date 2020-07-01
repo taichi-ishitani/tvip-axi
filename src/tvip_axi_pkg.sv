@@ -7,10 +7,12 @@
 package tvip_axi_pkg;
   import  uvm_pkg::*;
   import  tue_pkg::*;
+  import  tvip_common_pkg::*;
   import  tvip_axi_types_pkg::*;
 
   `include  "uvm_macros.svh"
   `include  "tue_macros.svh"
+  `include  "tvip_common_macros.svh"
 
   typedef virtual tvip_axi_if tvip_axi_vif;
 

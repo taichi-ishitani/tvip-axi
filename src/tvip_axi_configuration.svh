@@ -1,156 +1,37 @@
 `ifndef TVIP_AXI_CONFIGURATION_SVH
 `define TVIP_AXI_CONFIGURATION_SVH
-class tvip_axi_delay_configuration extends tue_configuration;
-  rand  int max_delay;
-  rand  int mid_delay[2];
-  rand  int min_delay;
-  rand  int weight_zero_delay;
-  rand  int weight_short_delay;
-  rand  int weight_long_delay;
-
-  constraint c_valid_max_min_delay {
-    max_delay >= -1;
-    min_delay >= -1;
-    max_delay >= min_delay;
-  }
-
-  constraint c_default_max_min_delay {
-    soft max_delay == -1;
-    soft min_delay == -1;
-  }
-
-  constraint c_valid_mid_delay {
-    solve max_delay before mid_delay;
-    solve min_delay before mid_delay;
-    mid_delay[0] inside {-1, [min_delay:max_delay]};
-    mid_delay[1] inside {-1, [min_delay:max_delay]};
-    if (get_delay_delta(max_delay, min_delay) >= 1) {
-      if ((mid_delay[0] >= 0) || (mid_delay[1] >= 0)) {
-        mid_delay[0] < mid_delay[1];
-      }
-      if (get_min_delay(min_delay) == 0) {
-        mid_delay[0] > 0;
-      }
-    }
-    else {
-      mid_delay[0] == -1;
-      mid_delay[1] == -1;
-    }
-  }
-
-  constraint c_default_mid_delay {
-    soft mid_delay[0] == -1;
-    soft mid_delay[1] == -1;
-  }
-
-  constraint c_valid_weight_delay {
-    solve max_delay before weight_zero_delay, weight_short_delay, weight_long_delay;
-    solve min_delay before weight_zero_delay, weight_short_delay, weight_long_delay;
-    if (get_delay_delta(max_delay, min_delay) >= 1) {
-      weight_zero_delay  >= -1;
-      weight_short_delay >= -1;
-      weight_long_delay  >= -1;
-    }
-    else {
-      weight_zero_delay  == 0;
-      weight_short_delay == 0;
-      weight_long_delay  == 0;
-    }
-    if (min_delay > 0) {
-      weight_zero_delay == 0;
-    }
-    if ((min_delay <= 0) && (max_delay == 1)) {
-      weight_short_delay == 0;
-    }
-  }
-
-  constraint c_default_weight_delay {
-    soft weight_zero_delay  == -1;
-    soft weight_short_delay == -1;
-    soft weight_long_delay  == -1;
-  }
-
-  function void post_randomize();
-    int delay_delta;
-    weight_zero_delay   = (weight_zero_delay  == -1) ? 1 : weight_zero_delay;
-    weight_short_delay  = (weight_short_delay == -1) ? 1 : weight_short_delay;
-    weight_long_delay   = (weight_long_delay  == -1) ? 1 : weight_long_delay;
-    min_delay   = get_min_delay(min_delay);
-    max_delay   = get_max_delay(max_delay, min_delay);
-    delay_delta = get_delay_delta(max_delay, min_delay);
-    foreach (mid_delay[i]) begin
-      if (mid_delay[i] >= 0) begin
-        continue;
-      end
-      case (delay_delta)
-        0, 1: begin
-          mid_delay[i]  = (i == 0) ? min_delay : max_delay;
-        end
-        2: begin
-          mid_delay[i]  = (i == 0) ? min_delay + 1 : max_delay;
-        end
-        default: begin
-          mid_delay[i]  = min_delay + (delay_delta / 2) + i;
-        end
-      endcase
-    end
-  endfunction
-
-  local function int get_min_delay(int min_delay);
-    return (min_delay >= 0) ? min_delay : 0;
-  endfunction
-
-  local function int get_max_delay(int max_delay, int min_delay);
-    return (max_delay >= 0) ? max_delay : get_min_delay(min_delay);
-  endfunction
-
-  local function int get_delay_delta(int max_delay, int min_delay);
-    return get_max_delay(max_delay, min_delay) - get_min_delay(min_delay);
-  endfunction
-
-  `tue_object_default_constructor(tvip_axi_delay_configuration)
-  `uvm_object_utils_begin(tvip_axi_delay_configuration)
-    `uvm_field_int(max_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_sarray_int(mid_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(min_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(weight_zero_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(weight_short_delay, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(weight_long_delay, UVM_DEFAULT | UVM_DEC)
-  `uvm_object_utils_end
-endclass
-
 class tvip_axi_configuration extends tue_configuration;
-        tvip_axi_vif                  vif;
-  rand  tvip_axi_protocol             protocol;
-  rand  int                           id_width;
-  rand  int                           address_width;
-  rand  int                           max_burst_length;
-  rand  int                           data_width;
-  rand  int                           strobe_width;
-  rand  int                           qos_range[2];
-  rand  int                           response_weight_okay;
-  rand  int                           response_weight_exokay;
-  rand  int                           response_weight_slave_error;
-  rand  int                           response_weight_decode_error;
-  rand  tvip_axi_delay_configuration  request_start_delay;
-  rand  tvip_axi_delay_configuration  write_data_delay;
-  rand  tvip_axi_delay_configuration  response_start_delay;
-  rand  tvip_axi_delay_configuration  response_delay;
-  rand  bit                           default_awready;
-  rand  tvip_axi_delay_configuration  awready_delay;
-  rand  bit                           default_wready;
-  rand  tvip_axi_delay_configuration  wready_delay;
-  rand  bit                           default_bready;
-  rand  tvip_axi_delay_configuration  bready_delay;
-  rand  bit                           default_arready;
-  rand  tvip_axi_delay_configuration  arready_delay;
-  rand  bit                           default_rready;
-  rand  tvip_axi_delay_configuration  rready_delay;
-  rand  tvip_axi_ordering_mode        response_ordering;
-  rand  int                           interleave_depth;
-  rand  int                           max_interleave_size;
-  rand  int                           min_interleave_size;
-  rand  bit                           reset_by_agent;
+        tvip_axi_vif              vif;
+  rand  tvip_axi_protocol         protocol;
+  rand  int                       id_width;
+  rand  int                       address_width;
+  rand  int                       max_burst_length;
+  rand  int                       data_width;
+  rand  int                       strobe_width;
+  rand  int                       qos_range[2];
+  rand  int                       response_weight_okay;
+  rand  int                       response_weight_exokay;
+  rand  int                       response_weight_slave_error;
+  rand  int                       response_weight_decode_error;
+  rand  tvip_delay_configuration  request_start_delay;
+  rand  tvip_delay_configuration  write_data_delay;
+  rand  tvip_delay_configuration  response_start_delay;
+  rand  tvip_delay_configuration  response_delay;
+  rand  bit                       default_awready;
+  rand  tvip_delay_configuration  awready_delay;
+  rand  bit                       default_wready;
+  rand  tvip_delay_configuration  wready_delay;
+  rand  bit                       default_bready;
+  rand  tvip_delay_configuration  bready_delay;
+  rand  bit                       default_arready;
+  rand  tvip_delay_configuration  arready_delay;
+  rand  bit                       default_rready;
+  rand  tvip_delay_configuration  rready_delay;
+  rand  tvip_axi_ordering_mode    response_ordering;
+  rand  int                       interleave_depth;
+  rand  int                       max_interleave_size;
+  rand  int                       min_interleave_size;
+  rand  bit                       reset_by_agent;
 
   constraint c_default_protocol {
     soft protocol == TVIP_AXI4;
@@ -268,15 +149,15 @@ class tvip_axi_configuration extends tue_configuration;
 
   function new(string name = "tvip_axi_configuration");
     super.new(name);
-    request_start_delay   = tvip_axi_delay_configuration::type_id::create("request_start_delay");
-    write_data_delay      = tvip_axi_delay_configuration::type_id::create("write_data_delay");
-    response_start_delay  = tvip_axi_delay_configuration::type_id::create("response_start_delay");
-    response_delay        = tvip_axi_delay_configuration::type_id::create("response_delay");
-    awready_delay         = tvip_axi_delay_configuration::type_id::create("awready_delay");
-    wready_delay          = tvip_axi_delay_configuration::type_id::create("wready_delay");
-    bready_delay          = tvip_axi_delay_configuration::type_id::create("bready_delay");
-    arready_delay         = tvip_axi_delay_configuration::type_id::create("arready_delay");
-    rready_delay          = tvip_axi_delay_configuration::type_id::create("rready_delay");
+    request_start_delay   = tvip_delay_configuration::type_id::create("request_start_delay");
+    write_data_delay      = tvip_delay_configuration::type_id::create("write_data_delay");
+    response_start_delay  = tvip_delay_configuration::type_id::create("response_start_delay");
+    response_delay        = tvip_delay_configuration::type_id::create("response_delay");
+    awready_delay         = tvip_delay_configuration::type_id::create("awready_delay");
+    wready_delay          = tvip_delay_configuration::type_id::create("wready_delay");
+    bready_delay          = tvip_delay_configuration::type_id::create("bready_delay");
+    arready_delay         = tvip_delay_configuration::type_id::create("arready_delay");
+    rready_delay          = tvip_delay_configuration::type_id::create("rready_delay");
   endfunction
 
   function void post_randomize();

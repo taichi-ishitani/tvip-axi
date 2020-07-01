@@ -1,6 +1,6 @@
 `ifndef TVIP_AXI_ITEM_SVH
 `define TVIP_AXI_ITEM_SVH
-virtual class tvip_axi_item extends tue_sequence_item #(
+class tvip_axi_item extends tue_sequence_item #(
   .CONFIGURATION  (tvip_axi_configuration ),
   .STATUS         (tvip_axi_status        )
 );
@@ -204,7 +204,7 @@ virtual class tvip_axi_item extends tue_sequence_item #(
     disable fork;
   endtask
 
-  `uvm_field_utils_begin(tvip_axi_item)
+  `uvm_object_utils_begin(tvip_axi_item)
     `uvm_field_enum(tvip_axi_access_type, access_type, UVM_DEFAULT)
     `uvm_field_int(id, UVM_DEFAULT | UVM_HEX)
     `uvm_field_int(address, UVM_DEFAULT | UVM_HEX)
@@ -228,7 +228,7 @@ virtual class tvip_axi_item extends tue_sequence_item #(
     `uvm_field_int(response_begin_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
     `uvm_field_int(response_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
     `uvm_field_int(wait_for_end, UVM_DEFAULT | UVM_NOCOMPARE | UVM_NOPRINT)
-  `uvm_field_utils_end
+  `uvm_object_utils_end
 endclass
 
 class tvip_axi_master_item extends tvip_axi_item;
@@ -297,52 +297,44 @@ class tvip_axi_master_item extends tvip_axi_item;
     }
   }
 
-  `tvip_axi_declare_delay_consraint(
-    start_delay,
-    this.configuration.request_start_delay.min_delay,
-    this.configuration.request_start_delay.mid_delay[0],
-    this.configuration.request_start_delay.mid_delay[1],
-    this.configuration.request_start_delay.max_delay,
-    this.configuration.request_start_delay.weight_zero_delay,
-    this.configuration.request_start_delay.weight_short_delay,
-    this.configuration.request_start_delay.weight_long_delay
-  )
-
-  constraint c_write_data_delay_order_and_valid_size {
-    solve access_type  before write_data_delay;
-    solve burst_length before write_data_delay;
-    (access_type == TVIP_AXI_WRITE_ACCESS) -> write_data_delay.size() == burst_length;
-    (access_type == TVIP_AXI_READ_ACCESS ) -> write_data_delay.size() == 0;
+  constraint c_start_delay {
+    `tvip_delay_constraint(start_delay, this.configuration.request_start_delay)
   }
 
-  `tvip_axi_declare_delay_consraint_array(
-    write_data_delay,
-    this.configuration.write_data_delay.min_delay,
-    this.configuration.write_data_delay.mid_delay[0],
-    this.configuration.write_data_delay.mid_delay[1],
-    this.configuration.write_data_delay.max_delay,
-    this.configuration.write_data_delay.weight_zero_delay,
-    this.configuration.write_data_delay.weight_short_delay,
-    this.configuration.write_data_delay.weight_long_delay
-  )
+  constraint c_write_data_delay {
+    solve access_type, burst_length  before write_data_delay;
 
-  constraint c_response_ready_delay_order_and_valid_size {
-    solve access_type  before response_ready_delay;
-    solve burst_length before response_ready_delay;
-    (access_type == TVIP_AXI_WRITE_ACCESS) -> response_ready_delay.size() == 1;
-    (access_type == TVIP_AXI_READ_ACCESS ) -> response_ready_delay.size() == burst_length;
+    if (access_type == TVIP_AXI_WRITE_ACCESS) {
+      write_data_delay.size() == burst_length;
+    }
+    else {
+      write_data_delay.size() == 0;
+    }
+
+    foreach (write_data_delay[i]) {
+      `tvip_delay_constraint(write_data_delay[i], this.configuration.write_data_delay)
+    }
   }
 
-  `tvip_axi_declare_delay_consraint_array(
-    response_ready_delay,
-    `tvip_axi_select_delay_configuration(access_type, bready_delay.min_delay         , rready_delay.min_delay         ),
-    `tvip_axi_select_delay_configuration(access_type, bready_delay.mid_delay[0]      , rready_delay.mid_delay[0]      ),
-    `tvip_axi_select_delay_configuration(access_type, bready_delay.mid_delay[1]      , rready_delay.mid_delay[1]      ),
-    `tvip_axi_select_delay_configuration(access_type, bready_delay.max_delay         , rready_delay.max_delay         ),
-    `tvip_axi_select_delay_configuration(access_type, bready_delay.weight_zero_delay , rready_delay.weight_zero_delay ),
-    `tvip_axi_select_delay_configuration(access_type, bready_delay.weight_short_delay, rready_delay.weight_short_delay),
-    `tvip_axi_select_delay_configuration(access_type, bready_delay.weight_long_delay , rready_delay.weight_long_delay )
-  )
+  constraint c_response_ready_delay {
+    solve access_type, burst_length before response_ready_delay;
+
+    if (access_type == TVIP_AXI_WRITE_ACCESS) {
+      response_ready_delay.size() == 1;
+    }
+    else {
+      response_ready_delay.size() == burst_length;
+    }
+
+    foreach (response_ready_delay[i]) {
+      if (access_type == TVIP_AXI_WRITE_ACCESS) {
+        `tvip_delay_constraint(response_ready_delay[i], this.configuration.bready_delay)
+      }
+      else {
+        `tvip_delay_constraint(response_ready_delay[i], this.configuration.rready_delay)
+      }
+    }
+  }
 
   function void pre_randomize();
     super.pre_randomize();
@@ -377,59 +369,44 @@ class tvip_axi_slave_item extends tvip_axi_item;
     }
   }
 
-  `tvip_axi_declare_delay_consraint(
-    address_ready_delay,
-    `tvip_axi_select_delay_configuration(access_type, awready_delay.min_delay         , arready_delay.min_delay         ),
-    `tvip_axi_select_delay_configuration(access_type, awready_delay.mid_delay[0]      , arready_delay.mid_delay[0]      ),
-    `tvip_axi_select_delay_configuration(access_type, awready_delay.mid_delay[1]      , arready_delay.mid_delay[1]      ),
-    `tvip_axi_select_delay_configuration(access_type, awready_delay.max_delay         , arready_delay.max_delay         ),
-    `tvip_axi_select_delay_configuration(access_type, awready_delay.weight_zero_delay , arready_delay.weight_zero_delay ),
-    `tvip_axi_select_delay_configuration(access_type, awready_delay.weight_short_delay, arready_delay.weight_short_delay),
-    `tvip_axi_select_delay_configuration(access_type, awready_delay.weight_long_delay , arready_delay.weight_long_delay ),
-  )
-
-  constraint c_write_data_ready_delay_valid_size {
-    (access_type == TVIP_AXI_WRITE_ACCESS) -> write_data_ready_delay.size() == burst_length;
-    (access_type == TVIP_AXI_READ_ACCESS ) -> write_data_ready_delay.size() == 0;
+  constraint c_address_ready_delay {
+    if (access_type == TVIP_AXI_WRITE_ACCESS) {
+      `tvip_delay_constraint(address_ready_delay, this.configuration.awready_delay)
+    }
+    else {
+      `tvip_delay_constraint(address_ready_delay, this.configuration.arready_delay)
+    }
   }
 
-  `tvip_axi_declare_delay_consraint_array(
-    write_data_ready_delay,
-    this.configuration.wready_delay.min_delay,
-    this.configuration.wready_delay.mid_delay[0],
-    this.configuration.wready_delay.mid_delay[1],
-    this.configuration.wready_delay.max_delay,
-    this.configuration.wready_delay.weight_zero_delay,
-    this.configuration.wready_delay.weight_short_delay,
-    this.configuration.wready_delay.weight_long_delay
-  )
+  constraint c_write_data_ready_delay {
+    if (access_type == TVIP_AXI_WRITE_ACCESS) {
+      write_data_ready_delay.size() == burst_length;
+    }
+    else {
+      write_data_ready_delay.size() == 0;
+    }
 
-  `tvip_axi_declare_delay_consraint(
-    start_delay,
-    this.configuration.response_start_delay.min_delay,
-    this.configuration.response_start_delay.mid_delay[0],
-    this.configuration.response_start_delay.mid_delay[1],
-    this.configuration.response_start_delay.max_delay,
-    this.configuration.response_start_delay.weight_zero_delay,
-    this.configuration.response_start_delay.weight_short_delay,
-    this.configuration.response_start_delay.weight_long_delay
-  )
-
-  constraint c_response_delay_valid_size {
-    (access_type == TVIP_AXI_WRITE_ACCESS) -> response_delay.size() == 1;
-    (access_type == TVIP_AXI_READ_ACCESS ) -> response_delay.size() == burst_length;
+    foreach (write_data_ready_delay[i]) {
+      `tvip_delay_constraint(write_data_ready_delay[i], this.configuration.wready_delay)
+    }
   }
 
-  `tvip_axi_declare_delay_consraint_array(
-    response_delay,
-    this.configuration.response_delay.min_delay,
-    this.configuration.response_delay.mid_delay[0],
-    this.configuration.response_delay.mid_delay[1],
-    this.configuration.response_delay.max_delay,
-    this.configuration.response_delay.weight_zero_delay,
-    this.configuration.response_delay.weight_short_delay,
-    this.configuration.response_delay.weight_long_delay
-  )
+  constraint c_start_delay {
+    `tvip_delay_constraint(start_delay, this.configuration.response_start_delay)
+  }
+
+  constraint c_response_delay {
+    if (access_type == TVIP_AXI_WRITE_ACCESS) {
+      response_delay.size() == 1;
+    }
+    else {
+      response_delay.size() == burst_length;
+    }
+
+    foreach (response_delay[i]) {
+      `tvip_delay_constraint(response_delay[i], this.configuration.response_delay)
+    }
+  }
 
   function void pre_randomize();
     super.pre_randomize();

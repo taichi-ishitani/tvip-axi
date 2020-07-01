@@ -4,7 +4,11 @@ export TVIP_AXI_HOME
 TUE_HOME	?= $(TVIP_AXI_HOME)/tue
 export TUE_HOME
 
+TVIP_COMMON_HOME	?= $(TVIP_AXI_HOME)/tvip-common
+export TVIP_COMMON_HOME
+
 FILE_LISTS	+= $(TUE_HOME)/compile.f
+FILE_LISTS	+= $(TVIP_COMMON_HOME)/compile.f
 FILE_LISTS	+= $(TVIP_AXI_HOME)/compile.f
 FILE_LISTS	+= $(TVIP_AXI_HOME)/sample/env/compile.f
 
@@ -38,6 +42,7 @@ clean:
 
 clean_all:
 	make clean
+	rm -rf $(CLEAN_ALL_TARGET)
 	rm -rf $(addprefix */,$(CLEAN_ALL_TARGET))
 
 include vcs.mk
