@@ -9,6 +9,11 @@ class tvip_axi_configuration extends tue_configuration;
   rand  int                       data_width;
   rand  int                       strobe_width;
   rand  int                       qos_range[2];
+  rand  tvip_axi_ordering_mode    response_ordering;
+  rand  int                       outstanding_responses;
+  rand  bit                       enable_response_interleaving;
+  rand  int                       min_interleave_size;
+  rand  int                       max_interleave_size;
   rand  int                       response_weight_okay;
   rand  int                       response_weight_exokay;
   rand  int                       response_weight_slave_error;
@@ -27,10 +32,6 @@ class tvip_axi_configuration extends tue_configuration;
   rand  tvip_delay_configuration  arready_delay;
   rand  bit                       default_rready;
   rand  tvip_delay_configuration  rready_delay;
-  rand  tvip_axi_ordering_mode    response_ordering;
-  rand  int                       interleave_depth;
-  rand  int                       max_interleave_size;
-  rand  int                       min_interleave_size;
   rand  bit                       reset_by_agent;
 
   constraint c_default_protocol {
@@ -92,6 +93,40 @@ class tvip_axi_configuration extends tue_configuration;
     }
   }
 
+  constraint c_valid_response_ordering {
+    solve protocol before response_ordering;
+    if (protocol == TVIP_AXI4LITE) {
+      response_ordering == TVIP_AXI_IN_ORDER;
+    }
+  }
+
+  constraint c_default_response_ordering {
+    soft response_ordering == TVIP_AXI_OUT_OF_ORDER;
+  }
+
+  constraint c_valid_outstanding_responses {
+    outstanding_responses >= 0;
+  }
+
+  constraint c_default_outstanding_responses {
+    soft outstanding_responses == 0;
+  }
+
+  constraint c_default_enable_response_interleaving {
+    soft enable_response_interleaving == 0;
+  }
+
+  constraint c_valid_interleave_size {
+    min_interleave_size >= 0;
+    max_interleave_size >= 0;
+    max_interleave_size >= min_interleave_size;
+  }
+
+  constraint c_default_interleave_size {
+    soft min_interleave_size == 0;
+    soft max_interleave_size == 0;
+  }
+
   constraint c_valid_response_weight {
     response_weight_okay         >= -1;
     response_weight_exokay       >= -1;
@@ -104,43 +139,6 @@ class tvip_axi_configuration extends tue_configuration;
     soft response_weight_exokay       == -1;
     soft response_weight_slave_error  == -1;
     soft response_weight_decode_error == -1;
-  }
-
-  constraint c_valid_interleave_depth {
-    solve response_ordering before interleave_depth;
-    if (response_ordering == TVIP_AXI_OUT_OF_ORDER) {
-      interleave_depth >= -1;
-    }
-    else {
-      interleave_depth == 1;
-    }
-  }
-
-  constraint c_default_interleave_depth {
-    if (response_ordering == TVIP_AXI_OUT_OF_ORDER) {
-      soft interleave_depth == -1;
-    }
-  }
-
-  constraint c_valid_interleave_size {
-    solve interleave_depth before max_interleave_size;
-    solve interleave_depth before min_interleave_size;
-    if ((interleave_depth >= 2) || (interleave_depth == 0)) {
-      max_interleave_size >= 0;
-      min_interleave_size >= 0;
-      max_interleave_size >= min_interleave_size;
-    }
-    else {
-      max_interleave_size == -1;
-      min_interleave_size == -1;
-    }
-  }
-
-  constraint c_default_interleave_size {
-    if ((interleave_depth >= 2) || (interleave_depth == 0)) {
-      soft max_interleave_size == 0;
-      soft min_interleave_size == 0;
-    }
   }
 
   constraint c_default_reset_by_agent {
@@ -168,7 +166,6 @@ class tvip_axi_configuration extends tue_configuration;
     response_weight_exokay        = (response_weight_exokay       >= 0) ? response_weight_exokay       : 0;
     response_weight_slave_error   = (response_weight_slave_error  >= 0) ? response_weight_slave_error  : 0;
     response_weight_decode_error  = (response_weight_decode_error >= 0) ? response_weight_decode_error : 0;
-    interleave_depth              = (interleave_depth             >= 0) ? interleave_depth             : 1;
   endfunction
 
   `uvm_object_utils_begin(tvip_axi_configuration)
@@ -179,6 +176,11 @@ class tvip_axi_configuration extends tue_configuration;
     `uvm_field_int(data_width, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(strobe_width, UVM_DEFAULT | UVM_DEC)
     `uvm_field_sarray_int(qos_range, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_enum(tvip_axi_ordering_mode, response_ordering, UVM_DEFAULT)
+    `uvm_field_int(outstanding_responses, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(enable_response_interleaving, UVM_DEFAULT | UVM_BIN)
+    `uvm_field_int(min_interleave_size, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(max_interleave_size, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(response_weight_okay, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(response_weight_exokay, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(response_weight_slave_error, UVM_DEFAULT | UVM_DEC)
@@ -197,10 +199,6 @@ class tvip_axi_configuration extends tue_configuration;
     `uvm_field_object(arready_delay, UVM_DEFAULT)
     `uvm_field_int(default_rready, UVM_DEFAULT | UVM_BIN)
     `uvm_field_object(rready_delay, UVM_DEFAULT)
-    `uvm_field_enum(tvip_axi_ordering_mode, response_ordering, UVM_DEFAULT)
-    `uvm_field_int(interleave_depth, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(max_interleave_size, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(min_interleave_size, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(reset_by_agent, UVM_DEFAULT | UVM_BIN)
   `uvm_object_utils_end
 endclass

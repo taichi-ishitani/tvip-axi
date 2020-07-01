@@ -9,6 +9,8 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
   endfunction
 
   task body();
+    do_write_read_access_sequencial();
+
     for (int i = 0;i < 20;++i) begin
       fork
         automatic int ii  = i;
@@ -16,7 +18,7 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
       join_none
     end
     wait fork;
- 
+
     for (int i = 0;i < 20;++i) begin
       fork
         automatic int ii  = i;
@@ -24,6 +26,52 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
       join_none
     end
     wait fork;
+  endtask
+
+  task do_write_read_access_sequencial();
+    tvip_axi_master_item  write_items[$];
+    tvip_axi_master_item  read_items[$];
+
+    for (int i = 0;i < 20;++i) begin
+      tvip_axi_master_item  write_item;
+      `tue_do_with(write_item, {
+        access_type == TVIP_AXI_WRITE_ACCESS;
+        address >= (64'h0001_0000_0000_0000 * (i + 0) - 0);
+        address <= (64'h0001_0000_0000_0000 * (i + 1) - 1);
+        (address + burst_size * burst_length) <= (64'h0001_0000_0000_0000 * (i + 1) - 1);
+      })
+      write_items.push_back(write_item);
+    end
+    write_items[$].response_end_event.wait_on();
+
+    foreach (write_items[i]) begin
+      tvip_axi_master_item  read_item;
+      `uvm_do_with(read_item, {
+        access_type  == TVIP_AXI_READ_ACCESS;
+        address      == write_items[i].address;
+        burst_size   == write_items[i].burst_size;
+        burst_length == write_items[i].burst_length;
+        wait_for_end == 0;
+      })
+      read_items.push_back(read_item);
+    end
+
+    foreach (write_items[i]) begin
+      tvip_axi_item write_item  = write_items[i];
+      tvip_axi_item read_item   = read_items[i];
+
+      read_item.response_end_event.wait_on();
+      for (int j = 0;j < write_item.burst_length;++j) begin
+        if (!compare_data(
+          j,
+          write_item.address, write_item.burst_size,
+          write_item.strobe, write_item.data,
+          read_item.data
+        )) begin
+          `uvm_error("CMPDATA", "write and read data are mismatched !!")
+        end
+      end
+    end
   endtask
 
   task do_write_read_access_by_sequence(int index);

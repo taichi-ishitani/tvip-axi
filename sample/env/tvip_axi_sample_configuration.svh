@@ -47,7 +47,7 @@ class tvip_axi_sample_configuration extends tue_configuration;
   }
 
   constraint c_response_start_delay {
-    if (enable_response_start_delay || enable_out_of_order_response) {
+    if (enable_response_start_delay) {
       axi_cfg.response_start_delay.min_delay          == 0;
       axi_cfg.response_start_delay.max_delay          == 10;
       axi_cfg.response_start_delay.weight_zero_delay  == 6;
@@ -103,6 +103,7 @@ class tvip_axi_sample_configuration extends tue_configuration;
   constraint c_response_ordering {
     if (enable_out_of_order_response || enable_read_interleave) {
       axi_cfg.response_ordering == TVIP_AXI_OUT_OF_ORDER;
+      axi_cfg.outstanding_responses inside {[2:5]};
     }
     else {
       axi_cfg.response_ordering == TVIP_AXI_IN_ORDER;
@@ -111,7 +112,10 @@ class tvip_axi_sample_configuration extends tue_configuration;
 
   constraint c_read_interleave {
     if (enable_read_interleave) {
-      axi_cfg.interleave_depth inside {[1:4]};
+      axi_cfg.enable_response_interleaving == 1;
+    }
+    else {
+      axi_cfg.enable_response_interleaving == 0;
     }
   }
 
