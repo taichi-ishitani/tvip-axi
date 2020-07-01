@@ -1,16 +1,14 @@
 `ifndef TVIP_AXI_SEQUENCER_BASE_SVH
 `define TVIP_AXI_SEQUENCER_BASE_SVH
-class tvip_axi_item_waiter #(
-  type  ITEM  = uvm_sequence_item
-) extends tue_subscriber #(
+class tvip_axi_item_waiter extends tue_subscriber #(
   .CONFIGURATION  (tvip_axi_configuration ),
   .STATUS         (tvip_axi_status        ),
-  .T              (ITEM                   )
+  .T              (tvip_axi_item          )
 );
   protected uvm_event waiters[$];
   protected uvm_event id_waiters[tvip_axi_id][$];
 
-  function void write(ITEM t);
+  function void write(tvip_axi_item t);
     while (waiters.size() > 0) begin
       uvm_event waiter  = waiters.pop_front();
       waiter.trigger(t);
@@ -26,13 +24,13 @@ class tvip_axi_item_waiter #(
     end
   endfunction
 
-  task get_item(ref ITEM  item);
+  task get_item(ref tvip_axi_item  item);
     uvm_event waiter  = get_waiter();
     waiter.wait_on();
     $cast(item, waiter.get_trigger_data());
   endtask
 
-  task get_item_by_id(ref ITEM item, input tvip_axi_id id);
+  task get_item_by_id(ref tvip_axi_item item, input tvip_axi_id id);
     uvm_event waiter  = get_id_waiter(id);
     waiter.wait_on();
     $cast(item, waiter.get_trigger_data());
@@ -102,18 +100,18 @@ virtual class tvip_axi_sequencer_base #(
   type  SUB_SEQEUENCER  = uvm_sequencer,
   type  ITEM            = uvm_sequence_item
 ) extends BASE;
-  uvm_analysis_export #(ITEM) address_item_export;
-  uvm_analysis_export #(ITEM) request_item_export;
-  uvm_analysis_export #(ITEM) response_item_export;
-  uvm_analysis_export #(ITEM) item_export;
+  uvm_analysis_export #(tvip_axi_item)  address_item_export;
+  uvm_analysis_export #(tvip_axi_item)  request_item_export;
+  uvm_analysis_export #(tvip_axi_item)  response_item_export;
+  uvm_analysis_export #(tvip_axi_item)  item_export;
 
-            SUB_SEQEUENCER                write_sequencer;
-            SUB_SEQEUENCER                read_sequencer;
-  protected tvip_axi_dispatcher #(ITEM)   dispatcher;
-  protected tvip_axi_item_waiter #(ITEM)  address_item_waiter;
-  protected tvip_axi_item_waiter #(ITEM)  request_item_waiter;
-  protected tvip_axi_item_waiter #(ITEM)  response_item_waiter;
-  protected tvip_axi_item_waiter #(ITEM)  item_waiter;
+            SUB_SEQEUENCER              write_sequencer;
+            SUB_SEQEUENCER              read_sequencer;
+  protected tvip_axi_dispatcher #(ITEM) dispatcher;
+  protected tvip_axi_item_waiter        address_item_waiter;
+  protected tvip_axi_item_waiter        request_item_waiter;
+  protected tvip_axi_item_waiter        response_item_waiter;
+  protected tvip_axi_item_waiter        item_waiter;
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
@@ -160,10 +158,10 @@ virtual class tvip_axi_sequencer_base #(
   endtask
 
   `define tvip_axi_define_item_getter_tasks(ITEM_TYPE) \
-  virtual task get_``ITEM_TYPE``(ref ITEM item); \
+  virtual task get_``ITEM_TYPE``(ref tvip_axi_item item); \
     ``ITEM_TYPE``_waiter.get_item(item); \
   endtask \
-  virtual task get_``ITEM_TYPE``_by_id(ref ITEM item, input tvip_axi_id id); \
+  virtual task get_``ITEM_TYPE``_by_id(ref tvip_axi_item item, input tvip_axi_id id); \
     ``ITEM_TYPE``_waiter.get_item_by_id(item, id); \
   endtask
 

@@ -3,7 +3,7 @@
 typedef tue_reactive_monitor #(
   .CONFIGURATION  (tvip_axi_configuration ),
   .STATUS         (tvip_axi_status        ),
-  .ITEM           (tvip_axi_slave_item    )
+  .ITEM           (tvip_axi_item          )
 ) tvip_axi_slave_monitor_base;
 
 virtual class tvip_axi_slave_monitor extends tvip_axi_monitor_base #(
@@ -11,13 +11,11 @@ virtual class tvip_axi_slave_monitor extends tvip_axi_monitor_base #(
   .ITEM (tvip_axi_slave_item          )
 );
   virtual protected function void begin_address(tvip_axi_item item);
-    tvip_axi_slave_item temp;
     super.begin_address(item);
-    $cast(temp, item);
-    write_request(temp);
+    write_request(item);
   endfunction
 
-  function void write_request(tvip_axi_slave_item item);
+  function void write_request(tvip_axi_item item);
     super.write_request(item);
   endfunction
 

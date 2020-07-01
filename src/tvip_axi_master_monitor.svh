@@ -3,7 +3,7 @@
 typedef tue_param_monitor #(
   .CONFIGURATION  (tvip_axi_configuration ),
   .STATUS         (tvip_axi_status        ),
-  .ITEM           (tvip_axi_master_item   )
+  .ITEM           (tvip_axi_item          )
 ) tvip_axi_master_monitor_base;
 
 virtual class tvip_axi_master_monitor extends tvip_axi_monitor_base #(

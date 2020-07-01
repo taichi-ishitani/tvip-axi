@@ -21,12 +21,12 @@ class tvip_axi_slave_sequencer extends tvip_axi_sequencer_base #(
   .ITEM           (tvip_axi_slave_item            )
 );
   uvm_analysis_imp #(
-    tvip_axi_slave_item, tvip_axi_slave_sequencer
+    tvip_axi_item, tvip_axi_slave_sequencer
   ) request_export;
 
-  protected tvip_axi_item_waiter #(tvip_axi_slave_item) write_request_waiter;
-  protected tvip_axi_item_waiter #(tvip_axi_slave_item) read_request_waiter;
-  protected tvip_axi_item_waiter #(tvip_axi_slave_item) request_waiter[tvip_axi_access_type];
+  protected tvip_axi_item_waiter  write_request_waiter;
+  protected tvip_axi_item_waiter  read_request_waiter;
+  protected tvip_axi_item_waiter  request_waiter[tvip_axi_access_type];
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
@@ -42,7 +42,7 @@ class tvip_axi_slave_sequencer extends tvip_axi_sequencer_base #(
     request_waiter[TVIP_AXI_READ_ACCESS ] = read_request_waiter;
   endfunction
 
-  virtual function void write(tvip_axi_slave_item request);
+  virtual function void write(tvip_axi_item request);
     request_waiter[request.access_type].write(request);
   endfunction
 
@@ -50,7 +50,9 @@ class tvip_axi_slave_sequencer extends tvip_axi_sequencer_base #(
     input tvip_axi_access_type  access_type,
     ref   tvip_axi_slave_item   request
   );
-    request_waiter[access_type].get_item(request);
+    tvip_axi_item item;
+    request_waiter[access_type].get_item(item);
+    void'($cast(request, item));
   endtask
 
   `tue_component_default_constructor(tvip_axi_slave_sequencer)

@@ -4,9 +4,9 @@ virtual class tvip_axi_monitor_base #(
   type  BASE  = uvm_monitor,
   type  ITEM  = uvm_sequence_item
 ) extends tvip_axi_component_base #(BASE);
-  uvm_analysis_port #(ITEM) address_item_port;
-  uvm_analysis_port #(ITEM) request_item_port;
-  uvm_analysis_port #(ITEM) response_item_port;
+  uvm_analysis_port #(tvip_axi_item)  address_item_port;
+  uvm_analysis_port #(tvip_axi_item)  request_item_port;
+  uvm_analysis_port #(tvip_axi_item)  response_item_port;
 
   protected tvip_axi_item           current_address_item;
   protected tvip_axi_payload_store  write_items[$];
@@ -39,30 +39,24 @@ virtual class tvip_axi_monitor_base #(
   endtask
 
   virtual function void end_address(tvip_axi_item item);
-    ITEM  temp;
     super.end_address(item);
-    $cast(temp, item);
-    address_item_port.write(temp);
+    address_item_port.write(item);
     if (is_read_component()) begin
-      request_item_port.write(temp);
+      request_item_port.write(item);
     end
   endfunction
 
   virtual function void end_write_data(tvip_axi_item item);
-    ITEM  temp;
     super.end_write_data(item);
-    if (is_write_component()) begin
-      $cast(temp, item);
-      request_item_port.write(temp);
+    if (is_write_component()) begin;
+      request_item_port.write(item);
     end
   endfunction
 
   virtual function void end_response(tvip_axi_item item);
-    ITEM  temp;
     super.end_response(item);
-    $cast(temp, item);
-    write_item(temp);
-    response_item_port.write(temp);
+    write_item(item);
+    response_item_port.write(item);
   endfunction
 
   protected task do_reset();

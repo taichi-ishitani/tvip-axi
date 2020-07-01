@@ -3,7 +3,7 @@
 class tvip_axi_slave_data_monitor extends tue_subscriber #(
   .CONFIGURATION  (tvip_axi_configuration ),
   .STATUS         (tvip_axi_status        ),
-  .T              (tvip_axi_slave_item    )
+  .T              (tvip_axi_item          )
 );
   protected tvip_axi_memory   memory;
 
@@ -16,7 +16,7 @@ class tvip_axi_slave_data_monitor extends tue_subscriber #(
     memory  = status.memory;
   endfunction
 
-  function void write(tvip_axi_slave_item t);
+  function void write(tvip_axi_item t);
     foreach (t.data[i]) begin
       memory.put(t.data[i], t.strobe[i], t.burst_size, t.address, i);
     end

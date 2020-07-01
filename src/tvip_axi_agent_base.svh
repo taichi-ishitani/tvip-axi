@@ -1,7 +1,6 @@
 `ifndef TVIP_AXI_AGENT_BASE_SVH
 `define TVIP_AXI_AGENT_BASE_SVH
 virtual class tvip_axi_agent_base #(
-  type  ITEM          = uvm_sequence_item,
   type  WRITE_MONITOR = uvm_monitor,
   type  READ_MONITOR  = uvm_monitor,
   type  SEQUENCER     = uvm_sequencer,
@@ -12,8 +11,8 @@ virtual class tvip_axi_agent_base #(
   .CONFIGURATION  (tvip_axi_configuration ),
   .STATUS         (tvip_axi_status        )
 );
-  uvm_analysis_port #(ITEM) item_port;
-  SEQUENCER                 sequencer;
+  uvm_analysis_port #(tvip_axi_item)  item_port;
+  SEQUENCER                           sequencer;
 
   protected WRITE_MONITOR write_monitor;
   protected WRITE_DRIVER  write_driver;
