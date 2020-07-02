@@ -4,7 +4,7 @@ class tvip_axi_master_ral_adapter extends uvm_reg_adapter;
   function new(string name = "tvip_axi_master_ral_adapter");
     super.new(name);
     supports_byte_enable  = 1;
-    provides_responses    = 0;
+    provides_responses    = 1;
   endfunction
 
   virtual function uvm_sequence_item reg2bus(const ref uvm_reg_bus_op rw);
@@ -12,7 +12,6 @@ class tvip_axi_master_ral_adapter extends uvm_reg_adapter;
 
     axi_item              = tvip_axi_master_item::type_id::create("axi_item");
     axi_item.address      = rw.addr;
-    axi_item.wait_for_end = 1;
     if (rw.kind == UVM_WRITE) begin
       axi_item.access_type  = TVIP_AXI_WRITE_ACCESS;
       axi_item.data         = new[1];

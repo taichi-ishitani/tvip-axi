@@ -1,22 +1,24 @@
 `ifndef TVIP_AXI_MASTER_ACCESS_SEQUENCE_SVH
 `define TVIP_AXI_MASTER_ACCESS_SEQUENCE_SVH
 class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
-  rand  tvip_axi_access_type  access_type;
-  rand  tvip_axi_id           id;
-  rand  tvip_axi_address      address;
-  rand  int                   burst_length;
-  rand  int                   burst_size;
-  rand  tvip_axi_burst_type   burst_type;
-  rand  tvip_axi_qos          qos;
-  rand  tvip_axi_data         data[];
-  rand  tvip_axi_strobe       strobe[];
-        tvip_axi_response     response[];
-  rand  int                   start_delay;
-  rand  int                   write_data_delay[];
-  rand  int                   response_ready_delay[];
-        uvm_event             address_done_event;
-        uvm_event             write_data_done_event;
-        uvm_event             response_done_event;
+  rand      tvip_axi_access_type  access_type;
+  rand      tvip_axi_id           id;
+  rand      tvip_axi_address      address;
+  rand      int                   burst_length;
+  rand      int                   burst_size;
+  rand      tvip_axi_burst_type   burst_type;
+  rand      tvip_axi_qos          qos;
+  rand      tvip_axi_data         data[];
+  rand      tvip_axi_strobe       strobe[];
+            tvip_axi_response     response[];
+  rand      int                   start_delay;
+  rand      int                   write_data_delay[];
+  rand      int                   response_ready_delay[];
+            uvm_event             address_done_event;
+            uvm_event             write_data_done_event;
+            uvm_event             response_done_event;
+  protected tvip_axi_master_item  request_item;
+  protected tvip_axi_master_item  response_item;
 
   constraint c_valid_id {
     (id >> this.configuration.id_width) == 0;
@@ -124,60 +126,50 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
 
   function new(string name = "tvip_axi_master_access_sequence");
     super.new(name);
-    address_done_event    = get_event("address_done");
-    write_data_done_event = get_event("write_data_done");
-    response_done_event   = get_event("response_done");
+    request_item          = tvip_axi_master_item::type_id::create("request_item");
+    address_done_event    = request_item.get_event("address_end");
+    write_data_done_event = request_item.get_event("write_data_end");
+    response_done_event   = request_item.get_event("response_end");
   endfunction
 
   task body();
-    tvip_axi_master_item  item;
-    create_request(item);
-    fork
-      p_sequencer.dispatch(item);
-      wait_for_progress(item);
-    join
+    transmit_request();
+    wait_for_response();
   endtask
 
-  local function void create_request(ref tvip_axi_master_item item);
-    `tue_create(item)
-    item.access_type          = access_type;
-    item.id                   = id;
-    item.address              = address;
-    item.burst_length         = burst_length;
-    item.burst_size           = burst_size;
-    item.burst_type           = burst_type;
-    item.qos                  = qos;
-    item.start_delay          = start_delay;
-    item.response_ready_delay = new[response_ready_delay.size()](response_ready_delay);
-    if (item.is_write()) begin
-      item.data             = new[data.size()](data);
-      item.strobe           = new[strobe.size()](strobe);
-      item.write_data_delay = new[write_data_delay.size()](write_data_delay);
+  local task transmit_request();
+    copy_request_info();
+    `uvm_send(request_item)
+  endtask
+
+  local function void copy_request_info();
+    request_item.access_type          = access_type;
+    request_item.id                   = id;
+    request_item.address              = address;
+    request_item.burst_length         = burst_length;
+    request_item.burst_size           = burst_size;
+    request_item.burst_type           = burst_type;
+    request_item.qos                  = qos;
+    request_item.start_delay          = start_delay;
+    request_item.response_ready_delay = new[response_ready_delay.size()](response_ready_delay);
+    request_item.need_response        = 1;
+    if (request_item.is_write()) begin
+      request_item.data             = new[data.size()](data);
+      request_item.strobe           = new[strobe.size()](strobe);
+      request_item.write_data_delay = new[write_data_delay.size()](write_data_delay);
     end
   endfunction
 
-  local task wait_for_progress(tvip_axi_master_item item);
-    fork
-      begin
-        item.address_end_event.wait_on();
-        address_done_event.trigger();
-      end
-      if (access_type == TVIP_AXI_WRITE_ACCESS) begin
-        item.write_data_end_event.wait_on();
-        write_data_done_event.trigger();
-      end
-      begin
-        item.response_end_event.wait_on();
-        copy_response(item);
-        response_done_event.trigger();
-      end
-    join
+  local task wait_for_response();
+    int id  = request_item.get_transaction_id();
+    get_response(response_item, id);
+    copy_response_info();
   endtask
 
-  local function void copy_response(tvip_axi_master_item item);
-    response  = new[item.response.size()](item.response);
-    if (item.is_read()) begin
-      data  = new[item.data.size()](item.data);
+  local function void copy_response_info();
+    response  = new[response_item.response.size()](response_item.response);
+    if (response_item.is_read()) begin
+      data  = new[response_item.data.size()](response_item.data);
     end
   endfunction
 

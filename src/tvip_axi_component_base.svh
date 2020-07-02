@@ -19,35 +19,35 @@ virtual class tvip_axi_component_base #(
     return !write_component;
   endfunction
 
-  virtual function void begin_address(tvip_axi_item item);
+  virtual task begin_address(tvip_axi_item item);
     void'(begin_tr(item));
     item.begin_address();
-  endfunction
+  endtask
 
-  virtual function void end_address(tvip_axi_item item);
+  virtual task end_address(tvip_axi_item item);
     item.end_address();
-  endfunction
+  endtask
 
-  virtual function void begin_write_data(tvip_axi_item item);
+  virtual task begin_write_data(tvip_axi_item item);
     if (item.is_write()) begin
       item.begin_write_data();
     end
-  endfunction
+  endtask
 
-  virtual function void end_write_data(tvip_axi_item item);
+  virtual task end_write_data(tvip_axi_item item);
     if (item.is_write()) begin
       item.end_write_data();
     end
-  endfunction
+  endtask
 
-  virtual function void begin_response(tvip_axi_item item);
+  virtual task begin_response(tvip_axi_item item);
     item.begin_response();
-  endfunction
+  endtask
 
-  virtual function void end_response(tvip_axi_item item);
+  virtual task end_response(tvip_axi_item item);
     item.end_response();
     end_tr(item);
-  endfunction
+  endtask
 
   protected function bit get_address_valid();
     return (write_component) ? vif.monitor_cb.awvalid : vif.monitor_cb.arvalid;

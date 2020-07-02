@@ -57,6 +57,15 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
     end
   endtask
 
+  task end_response(tvip_axi_item item);
+    super.end_response(item);
+    if (item.need_response) begin
+      tvip_axi_master_item  master_item;
+      void'($cast(master_item, item));
+      seq_item_port.put(master_item);
+    end
+  endtask
+
   protected task do_reset();
     if (current_address != null) begin
       end_tr(current_address);
@@ -94,10 +103,9 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
     uvm_wait_for_nba_region();
     while (seq_item_port.has_do_available()) begin
       tvip_axi_master_item  item;
-      seq_item_port.get_next_item(item);
+      seq_item_port.get(item);
       accept_tr(item);
       request_items.push_back(item);
-      seq_item_port.item_done();
     end
   endtask
 

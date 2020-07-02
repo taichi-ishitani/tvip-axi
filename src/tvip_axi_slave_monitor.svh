@@ -10,10 +10,10 @@ virtual class tvip_axi_slave_monitor extends tvip_axi_monitor_base #(
   .BASE (tvip_axi_slave_monitor_base  ),
   .ITEM (tvip_axi_slave_item          )
 );
-  virtual protected function void begin_address(tvip_axi_item item);
+  task begin_address(tvip_axi_item item);
     super.begin_address(item);
     write_request(item);
-  endfunction
+  endtask
 
   function void write_request(tvip_axi_item item);
     super.write_request(item);

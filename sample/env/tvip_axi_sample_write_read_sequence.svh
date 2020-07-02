@@ -42,7 +42,7 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
       })
       write_items.push_back(write_item);
     end
-    write_items[$].response_end_event.wait_on();
+    write_items[$].wait_for_done();
 
     foreach (write_items[i]) begin
       tvip_axi_master_item  read_item;
@@ -51,7 +51,6 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
         address      == write_items[i].address;
         burst_size   == write_items[i].burst_size;
         burst_length == write_items[i].burst_length;
-        wait_for_end == 0;
       })
       read_items.push_back(read_item);
     end
@@ -60,7 +59,7 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
       tvip_axi_item write_item  = write_items[i];
       tvip_axi_item read_item   = read_items[i];
 
-      read_item.response_end_event.wait_on();
+      read_item.wait_for_done();
       for (int j = 0;j < write_item.burst_length;++j) begin
         if (!compare_data(
           j,
@@ -111,15 +110,15 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
       address <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
       (address + burst_size * burst_length) <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
     })
-    write_item.write_data_end_event.wait_on();
+    write_item.wait_for_done();
 
     `tue_do_with(read_item, {
       access_type  == TVIP_AXI_READ_ACCESS;
       address      == write_item.address;
       burst_size   == write_item.burst_size;
       burst_length == write_item.burst_length;
-      wait_for_end == 1;
     })
+    read_item.wait_for_done();
 
     for (int i = 0;i < write_item.burst_length;++i) begin
       if (!compare_data(

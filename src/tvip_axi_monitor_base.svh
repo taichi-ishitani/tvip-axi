@@ -38,26 +38,26 @@ virtual class tvip_axi_monitor_base #(
     end
   endtask
 
-  virtual function void end_address(tvip_axi_item item);
+  task end_address(tvip_axi_item item);
     super.end_address(item);
     address_item_port.write(item);
     if (is_read_component()) begin
       request_item_port.write(item);
     end
-  endfunction
+  endtask
 
-  virtual function void end_write_data(tvip_axi_item item);
+  task end_write_data(tvip_axi_item item);
     super.end_write_data(item);
     if (is_write_component()) begin;
       request_item_port.write(item);
     end
-  endfunction
+  endtask
 
-  virtual function void end_response(tvip_axi_item item);
+  task end_response(tvip_axi_item item);
     super.end_response(item);
     write_item(item);
     response_item_port.write(item);
-  endfunction
+  endtask
 
   protected task do_reset();
     if (current_address_item != null) begin

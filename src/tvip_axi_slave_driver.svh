@@ -134,10 +134,10 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     end
   endtask
 
-  function void begin_response(tvip_axi_item item);
+  task begin_response(tvip_axi_item item);
     super.begin_response(item);
     void'(begin_tr(item));
-  endfunction
+  endtask
 
   protected task do_reset();
     foreach (item_buffer[i]) begin
@@ -411,7 +411,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     end
   endtask
 
-  protected function void remove_response_item();
+  protected task remove_response_item();
     tvip_axi_id id;
 
     case (configuration.response_ordering)
@@ -424,7 +424,7 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     response_items.delete(id);
     active_ids.delete(id);
     end_response(current_response.item);
-  endfunction
+  endtask
 
   protected function int randomize_delay(tvip_delay_configuration delay_configuration);
     int delay;

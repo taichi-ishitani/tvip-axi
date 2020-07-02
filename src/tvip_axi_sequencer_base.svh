@@ -35,19 +35,32 @@ class tvip_axi_dispatcher extends tue_sequence_item_dispatcher #(
     end
   endfunction
 
-  protected task post_dispatch(tvip_axi_item item);
-    if (item.wait_for_end) begin
-      item.response_end_event.wait_on();
-    end
-  endtask
-
   `tue_object_default_constructor(tvip_axi_dispatcher)
+endclass
+
+class tvip_axi_sub_sequencer_base #(
+  type  ITEM            = uvm_sequence_item,
+  type  ROOT_SEQUENCER  = uvm_sequencer
+) extends tue_sequencer #(
+  .CONFIGURATION  (tvip_axi_configuration ),
+  .STATUS         (tvip_axi_status        ),
+  .REQ            (ITEM                   )
+);
+  protected ROOT_SEQUENCER  root_sequencer;
+
+  function new(string name = "tvip_axi_sub_sequencer_base", uvm_component parent = null);
+    super.new(name, parent);
+    void'($cast(root_sequencer, parent));
+  endfunction
+
+  task put(ITEM t);
+    root_sequencer.put(t);
+  endtask
 endclass
 
 virtual class tvip_axi_sequencer_base #(
   type  BASE            = uvm_sequencer,
-  type  SUB_SEQEUENCER  = uvm_sequencer,
-  type  ITEM            = uvm_sequence_item
+  type  SUB_SEQEUENCER  = uvm_sequencer
 ) extends BASE;
   uvm_analysis_export #(tvip_axi_item)  address_item_export;
   uvm_analysis_export #(tvip_axi_item)  request_item_export;
@@ -65,10 +78,10 @@ virtual class tvip_axi_sequencer_base #(
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
 
-    write_sequencer = SUB_SEQEUENCER::type_id::create("write_sequencer", this);
+    write_sequencer = new("write_sequencer", this);
     write_sequencer.set_context(configuration, status);
 
-    read_sequencer  = SUB_SEQEUENCER::type_id::create("read_sequencer", this);
+    read_sequencer  = new("read_sequencer", this);
     read_sequencer.set_context(configuration, status);
 
     dispatcher  = new("dispatcher");

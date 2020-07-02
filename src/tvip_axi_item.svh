@@ -32,11 +32,7 @@ class tvip_axi_item extends tue_sequence_item #(
         time                  response_begin_time;
         uvm_event             response_end_event;
         time                  response_end_time;
-  rand  bit                   wait_for_end;
-
-  constraint c_default_wait_foe_end {
-    soft wait_for_end == 0;
-  }
+  rand  bit                   need_response;
 
   function new(string name = "tvip_axi_item");
     super.new(name);
@@ -188,20 +184,7 @@ class tvip_axi_item extends tue_sequence_item #(
   endfunction
 
   task wait_for_done();
-    fork
-      begin
-        address_end_event.wait_on();
-        if (is_write()) begin
-          write_data_end_event.wait_on();
-        end
-        response_end_event.wait_on();
-      end
-      begin
-        uvm_event end_event = get_event("end");
-        end_event.wait_on();
-      end
-    join_any
-    disable fork;
+    response_end_event.wait_on();
   endtask
 
   `uvm_object_utils_begin(tvip_axi_item)
@@ -227,7 +210,7 @@ class tvip_axi_item extends tue_sequence_item #(
     `uvm_field_int(write_data_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
     `uvm_field_int(response_begin_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
     `uvm_field_int(response_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
-    `uvm_field_int(wait_for_end, UVM_DEFAULT | UVM_NOCOMPARE | UVM_NOPRINT)
+    `uvm_field_int(need_response, UVM_DEFAULT | UVM_NOCOMPARE | UVM_NOPRINT)
   `uvm_object_utils_end
 endclass
 
@@ -336,6 +319,10 @@ class tvip_axi_master_item extends tvip_axi_item;
     }
   }
 
+  constraint c_default_need_response {
+    soft need_response == 0;
+  }
+
   function void pre_randomize();
     super.pre_randomize();
     response.rand_mode(0);
@@ -406,6 +393,10 @@ class tvip_axi_slave_item extends tvip_axi_item;
     foreach (response_delay[i]) {
       `tvip_delay_constraint(response_delay[i], this.configuration.response_delay)
     }
+  }
+
+  constraint c_default_need_response {
+    soft need_response == 1;
   }
 
   function void pre_randomize();
