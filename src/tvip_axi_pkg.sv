@@ -35,8 +35,6 @@ package tvip_axi_pkg;
   `include  "tvip_axi_master_access_sequence.svh"
   `include  "tvip_axi_master_write_sequence.svh"
   `include  "tvip_axi_master_read_sequence.svh"
-  `include  "tvip_axi_master_ral_adapter.svh"
-  `include  "tvip_axi_master_ral_predictor.svh"
   `include  "tvip_axi_slave_monitor.svh"
   `include  "tvip_axi_slave_data_monitor.svh"
   `include  "tvip_axi_slave_driver.svh"
@@ -44,6 +42,8 @@ package tvip_axi_pkg;
   `include  "tvip_axi_slave_agent.svh"
   `include  "tvip_axi_slave_sequence_base.svh"
   `include  "tvip_axi_slave_default_sequence.svh"
+  `include  "tvip_axi_ral_adapter.svh"
+  `include  "tvip_axi_ral_predictor.svh"
   `include  "tvip_axi_undef_internal_macros.svh"
 endpackage
 `endif
