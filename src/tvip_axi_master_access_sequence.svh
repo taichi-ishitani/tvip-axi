@@ -139,6 +139,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
 
   local task transmit_request();
     copy_request_info();
+    attach_sequencer(access_type, request_item);
     `uvm_send(request_item)
   endtask
 

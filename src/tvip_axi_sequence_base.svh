@@ -14,6 +14,16 @@ virtual class tvip_axi_sequence_base #(
     read_sequencer  = p_sequencer.read_sequencer;
   endfunction
 
+  protected function void attach_sequencer(
+    tvip_axi_access_type  access_type,
+    tvip_axi_item         item
+  );
+    case (access_type)
+      TVIP_AXI_WRITE_ACCESS:  item.set_sequencer(write_sequencer);
+      TVIP_AXI_READ_ACCESS:   item.set_sequencer(read_sequencer);
+    endcase
+  endfunction
+
   `tue_object_default_constructor(tvip_axi_sequence_base)
   `uvm_declare_p_sequencer(SEQUENCER)
 endclass

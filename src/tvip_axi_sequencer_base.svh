@@ -54,7 +54,12 @@ class tvip_axi_sub_sequencer_base #(
   endfunction
 
   task put(ITEM t);
-    root_sequencer.put(t);
+    if (t.get_sequencer() == root_sequencer) begin
+      root_sequencer.put(t);
+    end
+    else begin
+      super.put(t);
+    end
   endtask
 endclass
 

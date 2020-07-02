@@ -9,7 +9,7 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
   endfunction
 
   task body();
-    do_write_read_access_sequencial();
+    do_basic_write_read_access();
 
     for (int i = 0;i < 20;++i) begin
       fork
@@ -28,7 +28,7 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
     wait fork;
   endtask
 
-  task do_write_read_access_sequencial();
+  task do_basic_write_read_access();
     tvip_axi_master_item  write_items[$];
     tvip_axi_master_item  read_items[$];
 
@@ -56,16 +56,20 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
     end
 
     foreach (write_items[i]) begin
-      tvip_axi_item write_item  = write_items[i];
-      tvip_axi_item read_item   = read_items[i];
+      tvip_axi_item write_item;
+      tvip_axi_item read_item;
+      tvip_axi_item response_item;
 
-      read_item.wait_for_done();
+      write_item  = write_items[i];
+      read_item   = read_items[i];
+      wait_for_response(read_item, response_item);
+
       for (int j = 0;j < write_item.burst_length;++j) begin
         if (!compare_data(
           j,
           write_item.address, write_item.burst_size,
           write_item.strobe, write_item.data,
-          read_item.data
+          response_item.data
         )) begin
           `uvm_error("CMPDATA", "write and read data are mismatched !!")
         end
@@ -101,34 +105,62 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
   endtask
 
   task do_write_read_access_by_item(int index);
+    uvm_sequencer_base    sequencer[2];
     tvip_axi_master_item  write_item;
+    tvip_axi_item         write_response;
     tvip_axi_master_item  read_item;
+    tvip_axi_item         read_response;
 
-    `tue_do_with(write_item, {
-      access_type == TVIP_AXI_WRITE_ACCESS;
-      address >= (64'h0001_0000_0000_0000 * (index + 0) - 0);
-      address <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
+    if ((index % 2) == 0) begin
+      sequencer[0]  = write_sequencer;
+      sequencer[1]  = read_sequencer;
+    end
+    else begin
+      sequencer[0]  = get_sequencer();
+      sequencer[1]  = get_sequencer();
+    end
+
+    `tue_do_on_with(write_item, sequencer[0], {
+      need_response == (index < 10);
+      access_type   == TVIP_AXI_WRITE_ACCESS;
+      address       >= (64'h0001_0000_0000_0000 * (index + 0) - 0);
+      address       <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
       (address + burst_size * burst_length) <= (64'h0001_0000_0000_0000 * (index + 1) - 1);
     })
-    write_item.wait_for_done();
+    wait_for_response(write_item, write_response);
 
-    `tue_do_with(read_item, {
-      access_type  == TVIP_AXI_READ_ACCESS;
-      address      == write_item.address;
-      burst_size   == write_item.burst_size;
-      burst_length == write_item.burst_length;
+    `tue_do_on_with(read_item, sequencer[1], {
+      need_response == write_item.need_response;
+      access_type   == TVIP_AXI_READ_ACCESS;
+      address       == write_item.address;
+      burst_size    == write_item.burst_size;
+      burst_length  == write_item.burst_length;
     })
-    read_item.wait_for_done();
+    wait_for_response(read_item, read_response);
 
-    for (int i = 0;i < write_item.burst_length;++i) begin
+    for (int i = 0;i < write_response.burst_length;++i) begin
       if (!compare_data(
         i,
-        write_item.address, write_item.burst_size,
-        write_item.strobe, write_item.data,
-        read_item.data
+        write_response.address, write_response.burst_size,
+        write_response.strobe, write_response.data,
+        read_response.data
       )) begin
         `uvm_error("CMPDATA", "write and read data are mismatched !!")
       end
+    end
+  endtask
+
+  task wait_for_response(
+    input   tvip_axi_item request,
+    output  tvip_axi_item response
+  );
+    if (request.need_response) begin
+      int id  = request.get_transaction_id();
+      get_response(response, id);
+    end
+    else begin
+      request.wait_for_done();
+      response  = request;
     end
   endtask
 

@@ -21,6 +21,7 @@ virtual class tvip_axi_slave_sequence_base extends tvip_axi_sequence_base #(
     ref   tvip_axi_slave_item   request
   );
     p_sequencer.get_request(access_type, request);
+    attach_sequencer(access_type, request);
   endtask
 
   virtual task get_write_request(ref tvip_axi_slave_item request);
