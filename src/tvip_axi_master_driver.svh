@@ -1,15 +1,12 @@
 `ifndef TVIP_AXI_MASTER_DRIVER_SVH
 `define TVIP_AXI_MASTER_DRIVER_SVH
-typedef tue_driver #(
-  .CONFIGURATION  (tvip_axi_configuration ),
-  .STATUS         (tvip_axi_status        ),
-  .REQ            (tvip_axi_master_item   )
-) tvip_axi_master_driver_base;
+typedef tvip_axi_sub_driver_base #(
+  .ITEM (tvip_axi_master_item )
+) tvip_axi_master_sub_driver_base;
 
-virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
-  .BASE (tvip_axi_master_driver_base  )
+class tvip_axi_master_sub_driver extends tvip_axi_component_base #(
+  .BASE (tvip_axi_master_sub_driver_base  )
 );
-  protected tvip_axi_item           request_items[$];
   protected int                     start_delay;
   protected tvip_axi_item           current_address;
   protected tvip_axi_item           write_items[$];
@@ -39,8 +36,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
           sample_response();
         end
 
-        get_request_from_port();
-        if ((current_address == null) && (request_items.size() > 0)) begin
+        if (current_address == null) begin
           get_next_request();
         end
         drive_address_channel();
@@ -60,9 +56,7 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
   task end_response(tvip_axi_item item);
     super.end_response(item);
     if (item.need_response) begin
-      tvip_axi_master_item  master_item;
-      void'($cast(master_item, item));
-      seq_item_port.put(master_item);
+      put_response(item);
     end
   endtask
 
@@ -97,20 +91,16 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
     end
   endtask
 
-  protected pure virtual task reset_if();
-
-  protected task get_request_from_port();
-    uvm_wait_for_nba_region();
-    while (seq_item_port.has_do_available()) begin
-      tvip_axi_master_item  item;
-      seq_item_port.get(item);
-      accept_tr(item);
-      request_items.push_back(item);
-    end
+  protected virtual task reset_if();
   endtask
 
   protected task get_next_request();
-    current_address = request_items.pop_front();
+    uvm_wait_for_nba_region();
+    if (item_buffer.size() == 0) begin
+      return;
+    end
+
+    current_address = item_buffer.pop_front();
     start_delay     = current_address.start_delay;
 
     if (current_address.is_write()) begin
@@ -197,13 +187,26 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
     end
   endfunction
 
-  protected pure virtual task drive_address_valid(bit valid);
-  protected pure virtual task drive_id(tvip_axi_id id);
-  protected pure virtual task drive_address(tvip_axi_address address);
-  protected pure virtual task drive_burst_length(tvip_axi_burst_length burst_length);
-  protected pure virtual task drive_burst_size(tvip_axi_burst_size burst_size);
-  protected pure virtual task drive_burst_type(tvip_axi_burst_type burst_type);
-  protected pure virtual task drive_qos(tvip_axi_qos qos);
+  protected virtual task drive_address_valid(bit valid);
+  endtask
+
+  protected virtual task drive_id(tvip_axi_id id);
+  endtask
+
+  protected virtual task drive_address(tvip_axi_address address);
+  endtask
+
+  protected virtual task drive_burst_length(tvip_axi_burst_length burst_length);
+  endtask
+
+  protected virtual task drive_burst_size(tvip_axi_burst_size burst_size);
+  endtask
+
+  protected virtual task drive_burst_type(tvip_axi_burst_type burst_type);
+  endtask
+
+  protected virtual task drive_qos(tvip_axi_qos qos);
+  endtask
 
   protected virtual task finish_address();
     end_address(current_address);
@@ -268,10 +271,17 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
     end
   endfunction
 
-  protected pure virtual task drive_write_data_valid(bit valid);
-  protected pure virtual task drive_write_data(tvip_axi_data data);
-  protected pure virtual task drive_strobe(tvip_axi_strobe strobe);
-  protected pure virtual task drive_write_data_last(bit last);
+  protected virtual task drive_write_data_valid(bit valid);
+  endtask
+
+  protected virtual task drive_write_data(tvip_axi_data data);
+  endtask
+
+  protected virtual task drive_strobe(tvip_axi_strobe strobe);
+  endtask
+
+  protected virtual task drive_write_data_last(bit last);
+  endtask
 
   protected virtual task finish_write_data();
     if (write_data_index == (current_write_data.get_burst_length() - 1)) begin
@@ -315,7 +325,8 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
     end
   endtask
 
-  protected pure virtual task drive_response_ready(bit ready);
+  protected virtual task drive_response_ready(bit ready);
+  endtask
 
   protected task sample_response();
     tvip_axi_id id;
@@ -337,11 +348,11 @@ virtual class tvip_axi_master_driver extends tvip_axi_component_base #(
     end
   endtask
 
-  `tue_component_default_constructor(tvip_axi_master_driver)
+  `tue_component_default_constructor(tvip_axi_master_sub_driver)
 endclass
 
-class tvip_axi_write_master_driver extends tvip_axi_master_driver;
-  function new(string name = "tvip_axi_write_master_driver", uvm_component parent = null);
+class tvip_axi_master_write_driver extends tvip_axi_master_sub_driver;
+  function new(string name = "tvip_axi_master_write_driver", uvm_component parent = null);
     super.new(name, parent);
     write_component = 1;
   endfunction
@@ -413,11 +424,11 @@ class tvip_axi_write_master_driver extends tvip_axi_master_driver;
     vif.master_cb.bready  <= ready;
   endtask
 
-  `uvm_component_utils(tvip_axi_write_master_driver)
+  `uvm_component_utils(tvip_axi_master_write_driver)
 endclass
 
-class tvip_axi_read_master_driver extends tvip_axi_master_driver;
-  function new(string name = "tvip_axi_read_master_driver", uvm_component parent = null);
+class tvip_axi_master_read_driver extends tvip_axi_master_sub_driver;
+  function new(string name = "tvip_axi_master_read_driver", uvm_component parent = null);
     super.new(name, parent);
     write_component = 0;
   endfunction
@@ -465,22 +476,19 @@ class tvip_axi_read_master_driver extends tvip_axi_master_driver;
     vif.master_cb.arqos <= qos;
   endtask
 
-  task drive_write_data_valid(bit valid);
-  endtask
-
-  task drive_write_data(tvip_axi_data data);
-  endtask
-
-  task drive_strobe(tvip_axi_strobe strobe);
-  endtask
-
-  task drive_write_data_last(bit last);
-  endtask
-
   task drive_response_ready(bit ready);
     vif.master_cb.rready  <= ready;
   endtask
 
-  `uvm_component_utils(tvip_axi_read_master_driver)
+  `uvm_component_utils(tvip_axi_master_read_driver)
+endclass
+
+class tvip_axi_master_driver extends tvip_axi_driver_base #(
+  .ITEM         (tvip_axi_master_item         ),
+  .WRITE_DRIVER (tvip_axi_master_write_driver ),
+  .READ_DRIVER  (tvip_axi_master_read_driver  )
+);
+  `tue_component_default_constructor(tvip_axi_master_driver)
+  `uvm_component_utils(tvip_axi_master_driver)
 endclass
 `endif

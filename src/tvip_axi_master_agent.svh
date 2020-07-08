@@ -4,9 +4,7 @@ typedef tvip_axi_agent_base #(
   .WRITE_MONITOR  (tvip_axi_write_master_monitor  ),
   .READ_MONITOR   (tvip_axi_read_master_monitor   ),
   .SEQUENCER      (tvip_axi_master_sequencer      ),
-  .SUB_SEQUENCER  (tvip_axi_master_sub_sequencer  ),
-  .WRITE_DRIVER   (tvip_axi_write_master_driver   ),
-  .READ_DRIVER    (tvip_axi_read_master_driver    )
+  .DRIVER         (tvip_axi_master_driver         )
 ) tvip_axi_master_agent_base;
 
 class tvip_axi_master_agent extends tvip_axi_master_agent_base;

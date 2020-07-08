@@ -6,10 +6,9 @@ typedef tue_sequence #(
   .REQ            (tvip_axi_master_item   )
 ) tvip_axi_master_sequence_base_base;
 
-virtual class tvip_axi_master_sequence_base extends tvip_axi_sequence_base #(
-  .BASE           (tvip_axi_master_sequence_base_base ),
-  .SEQUENCER      (tvip_axi_master_sequencer          ),
-  .SUB_SEQUENCER  (tvip_axi_master_sub_sequencer      )
+class tvip_axi_master_sequence_base extends tvip_axi_sequence_base #(
+  .BASE       (tvip_axi_master_sequence_base_base ),
+  .SEQUENCER  (tvip_axi_master_sequencer          )
 );
   function new(string name = "tvip_axi_master_sequence_base");
     super.new(name);

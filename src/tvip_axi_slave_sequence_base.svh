@@ -7,9 +7,8 @@ typedef tue_sequence #(
 ) tvip_axi_slave_sequence_base_base;
 
 virtual class tvip_axi_slave_sequence_base extends tvip_axi_sequence_base #(
-  .BASE           (tvip_axi_slave_sequence_base_base  ),
-  .SEQUENCER      (tvip_axi_slave_sequencer           ),
-  .SUB_SEQUENCER  (tvip_axi_slave_sub_sequencer       )
+  .BASE       (tvip_axi_slave_sequence_base_base  ),
+  .SEQUENCER  (tvip_axi_slave_sequencer           )
 );
   function new(string name = "tvip_axi_master_sequence_base");
     super.new(name);
@@ -21,7 +20,6 @@ virtual class tvip_axi_slave_sequence_base extends tvip_axi_sequence_base #(
     ref   tvip_axi_slave_item   request
   );
     p_sequencer.get_request(access_type, request);
-    attach_sequencer(access_type, request);
   endtask
 
   virtual task get_write_request(ref tvip_axi_slave_item request);

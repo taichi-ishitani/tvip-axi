@@ -1,11 +1,5 @@
 `ifndef TVIP_AXI_SLAVE_DRIVER_SVH
 `define TVIP_AXI_SLAVE_DRIVER_SVH
-typedef tue_driver #(
-  .CONFIGURATION  (tvip_axi_configuration ),
-  .STATUS         (tvip_axi_status        ),
-  .REQ            (tvip_axi_slave_item    )
-) tvip_axi_slave_driver_base;
-
 class tvip_axi_slave_driver_response_item;
   tvip_axi_item item;
   int           start_delay;
@@ -84,11 +78,13 @@ class tvip_axi_slave_driver_response_item;
   endfunction
 endclass
 
+typedef tvip_axi_sub_driver_base #(
+  .ITEM (tvip_axi_slave_item  )
+) tvip_axi_slave_sub_driver_base;
 
-virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
-  .BASE (tvip_axi_slave_driver_base )
+class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
+  .BASE (tvip_axi_slave_sub_driver_base )
 );
-  protected tvip_axi_item                       item_buffer[$];
   protected bit                                 address_busy;
   protected bit                                 default_address_ready;
   protected bit                                 default_ready[2];
@@ -114,7 +110,6 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
 
         if ((!address_busy) && get_address_valid()) begin
           address_busy  = 1;
-          get_items_from_port(1);
           update_ready_delay_queue();
         end
         if (address_busy && get_address_ready()) begin
@@ -172,32 +167,13 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     end
   endtask
 
-  protected pure virtual task reset_if();
-
-  protected task get_items_from_port(bit wait_for_nba);
-    if (wait_for_nba) begin
-      uvm_wait_for_nba_region();
-    end
-    while (seq_item_port.has_do_available()) begin
-      tvip_axi_slave_item item;
-      seq_item_port.get(item);
-      accept_tr(item);
-      item_buffer.push_back(item);
-    end
-  endtask
-
-  protected task update_item_buffer();
-    while (seq_item_port.has_do_available()) begin
-      tvip_axi_slave_item item;
-      seq_item_port.get_next_item(item);
-      item_buffer.push_back(item);
-      seq_item_port.item_done();
-    end
+  protected virtual task reset_if();
   endtask
 
   protected task update_ready_delay_queue();
     tvip_axi_item item;
 
+    uvm_wait_for_nba_region();
     if (item_buffer.size() > 0) begin
       if (item_buffer[$].address_begin_time == $time) begin
         item  = item_buffer[$];
@@ -253,7 +229,8 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     end
   endtask
 
-  protected pure virtual task drive_address_ready(bit address_ready);
+  protected virtual task drive_address_ready(bit address_ready);
+  endtask
 
   protected task drive_write_data_channel();
     bit write_data_ready;
@@ -276,16 +253,14 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     end
   endtask
 
-  protected pure virtual task drive_write_data_ready(bit write_data_ready);
+  protected virtual task drive_write_data_ready(bit write_data_ready);
+  endtask
 
   protected task manage_response_buffer();
-    if (item_buffer.size() == 0) begin
-      get_items_from_port(0);
-    end
-
     while (item_buffer.size() > 0) begin
       tvip_axi_item item;
       item  = item_buffer.pop_front();
+      accept_tr(item);
       case (configuration.response_ordering)
         TVIP_AXI_OUT_OF_ORDER:
           response_queue[item.id].push_back(item);
@@ -398,8 +373,11 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     end
   endtask
 
-  pure protected virtual task drive_active_response();
-  pure protected virtual task drive_idle_response();
+  protected virtual task drive_active_response();
+  endtask
+
+  protected virtual task drive_idle_response();
+  endtask
 
   protected task finish_response();
     current_response.next();
@@ -438,11 +416,11 @@ virtual class tvip_axi_slave_driver extends tvip_axi_component_base #(
     end
   endfunction
 
-  `tue_component_default_constructor(tvip_axi_slave_driver)
+  `tue_component_default_constructor(tvip_axi_slave_sub_driver)
 endclass
 
-class tvip_axi_write_slave_driver extends tvip_axi_slave_driver;
-  function new(string name = "tvip_axi_write_slave_driver", uvm_component parent = null);
+class tvip_axi_slave_write_driver extends tvip_axi_slave_sub_driver;
+  function new(string name = "tvip_axi_slave_write_driver", uvm_component parent = null);
     super.new(name, parent);
     write_component = 1;
   endfunction
@@ -481,11 +459,11 @@ class tvip_axi_write_slave_driver extends tvip_axi_slave_driver;
     vif.slave_cb.bresp  <= TVIP_AXI_OKAY;
   endtask
 
-  `uvm_component_utils(tvip_axi_write_slave_driver)
+  `uvm_component_utils(tvip_axi_slave_write_driver)
 endclass
 
-class tvip_axi_read_slave_driver extends tvip_axi_slave_driver;
-  function new(string name = "tvip_axi_read_slave_driver", uvm_component parent = null);
+class tvip_axi_slave_read_driver extends tvip_axi_slave_sub_driver;
+  function new(string name = "tvip_axi_slave_read_driver", uvm_component parent = null);
     super.new(name, parent);
     write_component = 0;
   endfunction
@@ -527,6 +505,15 @@ class tvip_axi_read_slave_driver extends tvip_axi_slave_driver;
     vif.slave_cb.rlast  <= 0;
   endtask
 
-  `uvm_component_utils(tvip_axi_read_slave_driver)
+  `uvm_component_utils(tvip_axi_slave_read_driver)
+endclass
+
+class tvip_axi_slave_driver extends tvip_axi_driver_base #(
+  .ITEM         (tvip_axi_slave_item          ),
+  .WRITE_DRIVER (tvip_axi_slave_write_driver  ),
+  .READ_DRIVER  (tvip_axi_slave_read_driver   )
+);
+  `tue_component_default_constructor(tvip_axi_slave_driver)
+  `uvm_component_utils(tvip_axi_slave_driver)
 endclass
 `endif

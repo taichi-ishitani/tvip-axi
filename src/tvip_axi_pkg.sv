@@ -25,6 +25,7 @@ package tvip_axi_pkg;
   `include  "tvip_axi_component_base.svh"
   `include  "tvip_axi_monitor_base.svh"
   `include  "tvip_axi_sequencer_base.svh"
+  `include  "tvip_axi_driver_base.svh"
   `include  "tvip_axi_agent_base.svh"
   `include  "tvip_axi_sequence_base.svh"
   `include  "tvip_axi_master_monitor.svh"

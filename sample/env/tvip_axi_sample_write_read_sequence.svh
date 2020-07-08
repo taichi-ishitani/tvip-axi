@@ -105,22 +105,12 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
   endtask
 
   task do_write_read_access_by_item(int index);
-    uvm_sequencer_base    sequencer[2];
     tvip_axi_master_item  write_item;
     tvip_axi_item         write_response;
     tvip_axi_master_item  read_item;
     tvip_axi_item         read_response;
 
-    if ((index % 2) == 0) begin
-      sequencer[0]  = write_sequencer;
-      sequencer[1]  = read_sequencer;
-    end
-    else begin
-      sequencer[0]  = get_sequencer();
-      sequencer[1]  = get_sequencer();
-    end
-
-    `tue_do_on_with(write_item, sequencer[0], {
+    `tue_do_with(write_item, {
       need_response == (index < 10);
       access_type   == TVIP_AXI_WRITE_ACCESS;
       address       >= (64'h0001_0000_0000_0000 * (index + 0) - 0);
@@ -129,7 +119,7 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
     })
     wait_for_response(write_item, write_response);
 
-    `tue_do_on_with(read_item, sequencer[1], {
+    `tue_do_with(read_item, {
       need_response == write_item.need_response;
       access_type   == TVIP_AXI_READ_ACCESS;
       address       == write_item.address;

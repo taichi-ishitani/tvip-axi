@@ -4,9 +4,7 @@ typedef tvip_axi_agent_base #(
   .WRITE_MONITOR  (tvip_axi_write_slave_monitor ),
   .READ_MONITOR   (tvip_axi_read_slave_monitor  ),
   .SEQUENCER      (tvip_axi_slave_sequencer     ),
-  .SUB_SEQUENCER  (tvip_axi_slave_sub_sequencer ),
-  .WRITE_DRIVER   (tvip_axi_write_slave_driver  ),
-  .READ_DRIVER    (tvip_axi_read_slave_driver   )
+  .DRIVER         (tvip_axi_slave_driver        )
 ) tvip_axi_slave_agent_base;
 
 class tvip_axi_slave_agent extends tvip_axi_slave_agent_base;
