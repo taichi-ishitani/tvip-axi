@@ -1,8 +1,8 @@
 `ifndef TVIP_AXI_SLAVE_AGENT_SVH
 `define TVIP_AXI_SLAVE_AGENT_SVH
 typedef tvip_axi_agent_base #(
-  .WRITE_MONITOR  (tvip_axi_write_slave_monitor ),
-  .READ_MONITOR   (tvip_axi_read_slave_monitor  ),
+  .WRITE_MONITOR  (tvip_axi_slave_write_monitor ),
+  .READ_MONITOR   (tvip_axi_slave_read_monitor  ),
   .SEQUENCER      (tvip_axi_slave_sequencer     ),
   .DRIVER         (tvip_axi_slave_driver        )
 ) tvip_axi_slave_agent_base;
