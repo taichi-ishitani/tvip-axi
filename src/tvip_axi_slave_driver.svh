@@ -473,7 +473,7 @@ class tvip_axi_slave_read_driver extends tvip_axi_slave_sub_driver;
     default_ready[0]  = configuration.default_arready;
   endfunction
 
-  task reset_if();
+  protected task reset_if();
     vif.arready = default_address_ready;
     vif.rvalid  = 0;
     vif.rid     = 0;
