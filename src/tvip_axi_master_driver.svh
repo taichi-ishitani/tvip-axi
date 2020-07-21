@@ -362,7 +362,7 @@ class tvip_axi_master_write_driver extends tvip_axi_master_sub_driver;
     default_response_ready  = configuration.default_bready;
   endfunction
 
-  task reset_if();
+  protected task reset_if();
     vif.awvalid = 0;
     vif.awid    = get_id_value(0);
     vif.awaddr  = get_address_value(0);
@@ -376,51 +376,51 @@ class tvip_axi_master_write_driver extends tvip_axi_master_sub_driver;
     vif.bready  = default_response_ready;
   endtask
 
-  task drive_address_valid(bit valid);
+  protected task drive_address_valid(bit valid);
     vif.master_cb.awvalid <= valid;
   endtask
 
-  task drive_id(tvip_axi_id id);
+  protected task drive_id(tvip_axi_id id);
     vif.master_cb.awid  <= id;
   endtask
 
-  task drive_address(tvip_axi_address address);
+  protected task drive_address(tvip_axi_address address);
     vif.master_cb.awaddr  <= address;
   endtask
 
-  task drive_burst_length(tvip_axi_burst_length burst_length);
+  protected task drive_burst_length(tvip_axi_burst_length burst_length);
     vif.master_cb.awlen <= burst_length;
   endtask
 
-  task drive_burst_size(tvip_axi_burst_size burst_size);
+  protected task drive_burst_size(tvip_axi_burst_size burst_size);
     vif.master_cb.awsize  <= burst_size;
   endtask
 
-  task drive_burst_type(tvip_axi_burst_type burst_type);
+  protected task drive_burst_type(tvip_axi_burst_type burst_type);
     vif.master_cb.awburst <= burst_type;
   endtask
 
-  task drive_qos(tvip_axi_qos qos);
+  protected task drive_qos(tvip_axi_qos qos);
     vif.master_cb.awqos <= qos;
   endtask
 
-  task drive_write_data_valid(bit valid);
+  protected task drive_write_data_valid(bit valid);
     vif.master_cb.wvalid  <= valid;
   endtask
 
-  task drive_write_data(tvip_axi_data data);
+  protected task drive_write_data(tvip_axi_data data);
     vif.master_cb.wdata <= data;
   endtask
 
-  task drive_strobe(tvip_axi_strobe strobe);
+  protected task drive_strobe(tvip_axi_strobe strobe);
     vif.master_cb.wstrb <= strobe;
   endtask
 
-  task drive_write_data_last(bit last);
+  protected task drive_write_data_last(bit last);
     vif.master_cb.wlast <= last;
   endtask
 
-  task drive_response_ready(bit ready);
+  protected task drive_response_ready(bit ready);
     vif.master_cb.bready  <= ready;
   endtask
 
@@ -438,7 +438,7 @@ class tvip_axi_master_read_driver extends tvip_axi_master_sub_driver;
     default_response_ready  = configuration.default_rready;
   endfunction
 
-  task reset_if();
+  protected task reset_if();
     vif.arvalid = 0;
     vif.arid    = get_id_value(0);
     vif.araddr  = get_address_value(0);
@@ -448,35 +448,35 @@ class tvip_axi_master_read_driver extends tvip_axi_master_sub_driver;
     vif.rready  = default_response_ready;
   endtask
 
-  task drive_address_valid(bit valid);
+  protected task drive_address_valid(bit valid);
     vif.master_cb.arvalid <= valid;
   endtask
 
-  task drive_id(tvip_axi_id id);
+  protected task drive_id(tvip_axi_id id);
     vif.master_cb.arid  <= id;
   endtask
 
-  task drive_address(tvip_axi_address address);
+  protected task drive_address(tvip_axi_address address);
     vif.master_cb.araddr  <= address;
   endtask
 
-  task drive_burst_length(tvip_axi_burst_length burst_length);
+  protected task drive_burst_length(tvip_axi_burst_length burst_length);
     vif.master_cb.arlen <= burst_length;
   endtask
 
-  task drive_burst_size(tvip_axi_burst_size burst_size);
+  protected task drive_burst_size(tvip_axi_burst_size burst_size);
     vif.master_cb.arsize  <= burst_size;
   endtask
 
-  task drive_burst_type(tvip_axi_burst_type burst_type);
+  protected task drive_burst_type(tvip_axi_burst_type burst_type);
     vif.master_cb.arburst <= burst_type;
   endtask
 
-  task drive_qos(tvip_axi_qos qos);
+  protected task drive_qos(tvip_axi_qos qos);
     vif.master_cb.arqos <= qos;
   endtask
 
-  task drive_response_ready(bit ready);
+  protected task drive_response_ready(bit ready);
     vif.master_cb.rready  <= ready;
   endtask
 
