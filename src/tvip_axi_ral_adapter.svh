@@ -11,6 +11,7 @@ class tvip_axi_ral_adapter extends uvm_reg_adapter;
     tvip_axi_master_item  axi_item;
 
     axi_item                = tvip_axi_master_item::type_id::create("axi_item");
+    axi_item.id             = get_axi_id();
     axi_item.address        = rw.addr;
     axi_item.need_response  = 1;
     if (rw.kind == UVM_WRITE) begin
@@ -35,6 +36,10 @@ class tvip_axi_ral_adapter extends uvm_reg_adapter;
     rw.data     = axi_item.data[0];
     rw.byte_en  = (axi_item.is_write()) ? axi_item.strobe[0] : rw.byte_en;
     rw.status   = get_status(axi_item);
+  endfunction
+
+  protected virtual function tvip_axi_id get_axi_id();
+    return 0;
   endfunction
 
   protected function uvm_status_e get_status(tvip_axi_item axi_item);

@@ -86,7 +86,7 @@ virtual class tvip_axi_component_base #(
   endfunction
 
   protected function tvip_axi_id get_address_id();
-    if (configuration.protocol == TVIP_AXI4) begin
+    if (configuration.id_width > 0) begin
       return (write_component) ? vif.monitor_cb.awid : vif.monitor_cb.arid;
     end
     else begin
@@ -151,7 +151,7 @@ virtual class tvip_axi_component_base #(
   endfunction
 
   protected function tvip_axi_id get_response_id();
-    if (configuration.protocol == TVIP_AXI4) begin
+    if (configuration.id_width > 0) begin
       return (write_component) ? vif.monitor_cb.bid : vif.monitor_cb.rid;
     end
     else begin

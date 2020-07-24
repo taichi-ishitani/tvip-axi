@@ -39,10 +39,13 @@ class tvip_axi_configuration extends tue_configuration;
   }
 
   constraint c_valid_id_width {
-    solve protocol before id_width;
     id_width inside {[0:`TVIP_AXI_MAX_ID_WIDTH]};
+  }
+
+  constraint c_default_id_width {
+    solve protocol before id_width;
     if (protocol == TVIP_AXI4LITE) {
-      id_width == 0;
+      soft id_width == 0;
     }
   }
 
