@@ -90,6 +90,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
   protected bit                                 default_ready[2];
   protected int                                 ready_delay_queue[2][$];
   protected int                                 ready_delay[2];
+  protected int                                 preceding_writes;
   protected tvip_axi_item                       response_queue[tvip_axi_id][$];
   protected tvip_axi_slave_driver_response_item response_items[tvip_axi_id];
   protected tvip_axi_id                         active_ids[tvip_axi_id];
@@ -155,6 +156,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
     ready_delay       = '{-1, -1};
     current_response  = null;
     response_busy     = 0;
+    preceding_writes  = 0;
     item_buffer.delete();
     ready_delay_queue[0].delete();
     ready_delay_queue[1].delete();
@@ -172,6 +174,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
 
   protected task update_ready_delay_queue();
     tvip_axi_item item;
+    int           length;
 
     uvm_wait_for_nba_region();
     if (item_buffer.size() > 0) begin
@@ -198,16 +201,16 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
       return;
     end
 
-    if (item != null) begin
-      foreach (item.write_data_ready_delay[i]) begin
+    length  = (item != null) ? item.burst_length : get_burst_length();
+    for (int i = 0;i < length;++i) begin
+      if (preceding_writes > 0) begin
+        --preceding_writes;
+      end
+      else if (item != null) begin
         ready_delay_queue[1].push_back(item.write_data_ready_delay[i]);
       end
-    end
-    else begin
-      repeat (get_burst_length()) begin
-        ready_delay_queue[1].push_back(
-          randomize_delay(configuration.wready_delay)
-        );
+      else begin
+        ready_delay_queue[1].push_back(randomize_delay(configuration.wready_delay));
       end
     end
   endtask
@@ -215,7 +218,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
   protected task drive_address_channel();
     bit address_ready;
 
-    if ((ready_delay[0] < 0) && (ready_delay_queue[0].size() > 0)) begin
+    if (ready_delay[0] < 0) begin
       ready_delay[0]  = ready_delay_queue[0].pop_front();
     end
 
@@ -233,13 +236,18 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
   endtask
 
   protected task drive_write_data_channel();
+    bit pop_ready_delay;
     bit write_data_ready;
 
-    if ((ready_delay[1] < 0) && (ready_delay_queue[1].size() > 0)) begin
-      if (get_write_data_valid()) begin
-        if (get_write_data_ready() == default_ready[1]) begin
-          ready_delay[1]  = ready_delay_queue[1].pop_front();
-        end
+    pop_ready_delay =
+      (ready_delay[1] < 0) && get_write_data_valid() && (get_write_data_ready() == default_ready[1]);
+    if (pop_ready_delay) begin
+      if (ready_delay_queue[1].size() > 0) begin
+        ready_delay[1]  = ready_delay_queue[1].pop_front();
+      end
+      else begin
+        ready_delay[1]  = randomize_delay(configuration.wready_delay);
+        ++preceding_writes;
       end
     end
 

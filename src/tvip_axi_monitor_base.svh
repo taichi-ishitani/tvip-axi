@@ -9,7 +9,9 @@ virtual class tvip_axi_monitor_base #(
   uvm_analysis_port #(tvip_axi_item)  response_item_port;
 
   protected tvip_axi_item           current_address_item;
+  protected tvip_axi_item           address_item_queue[$];
   protected tvip_axi_payload_store  write_items[$];
+  protected tvip_axi_payload_store  preceding_write_items[$];
   protected tvip_axi_payload_store  response_items[tvip_axi_id][$];
 
   function void build_phase(uvm_phase phase);
@@ -41,14 +43,14 @@ virtual class tvip_axi_monitor_base #(
   task end_address(tvip_axi_item item);
     super.end_address(item);
     address_item_port.write(item);
-    if (is_read_component()) begin
+    if (item.request_ended()) begin
       request_item_port.write(item);
     end
   endtask
 
   task end_write_data(tvip_axi_item item);
     super.end_write_data(item);
-    if (is_write_component()) begin;
+    if (item.request_ended()) begin
       request_item_port.write(item);
     end
   endtask
@@ -72,6 +74,13 @@ virtual class tvip_axi_monitor_base #(
     end
     write_items.delete();
 
+    foreach (preceding_write_items[i]) begin
+      if (!preceding_write_items[i].item.ended()) begin
+        end_tr(preceding_write_items[i].item);
+      end
+    end
+    preceding_write_items.delete();
+
     foreach (response_items[i, j]) begin
       if (!response_items[i][j].item.ended()) begin
         end_tr(response_items[i][j].item);
@@ -92,8 +101,14 @@ virtual class tvip_axi_monitor_base #(
   protected virtual task sample_address();
     tvip_axi_payload_store  payload_store;
 
-    current_address_item  = ITEM::type_id::create("axi_item");
-    current_address_item.set_context(configuration, status);
+    if (preceding_write_items.size() > 0) begin
+      payload_store         = preceding_write_items.pop_front();
+      current_address_item  = payload_store.item;
+    end
+    else begin
+      payload_store         = null;
+      current_address_item  = create_monitor_item();
+    end
 
     current_address_item.access_type  = (is_write_component()) ? TVIP_AXI_WRITE_ACCESS : TVIP_AXI_READ_ACCESS;
     current_address_item.id           = get_address_id();
@@ -104,9 +119,11 @@ virtual class tvip_axi_monitor_base #(
     current_address_item.qos          = get_qos();
     begin_address(current_address_item);
 
-    payload_store = tvip_axi_payload_store::create(current_address_item);
-    if (is_write_component()) begin
-      write_items.push_back(payload_store);
+    if (payload_store == null) begin
+      payload_store = tvip_axi_payload_store::create(current_address_item);
+      if (is_write_component()) begin
+        write_items.push_back(payload_store);
+      end
     end
     response_items[current_address_item.id].push_back(payload_store);
   endtask
@@ -117,10 +134,18 @@ virtual class tvip_axi_monitor_base #(
   endtask
 
   protected virtual task monitor_write_data();
-    if ((write_items.size() > 0) && (!write_items[0].item.write_data_began())) begin
+    if (write_items.size() == 0) begin
+      tvip_axi_item           item;
+      tvip_axi_payload_store  payload_store;
+      item          = create_monitor_item();
+      payload_store = tvip_axi_payload_store::create(item);
+      write_items.push_back(payload_store);
+      preceding_write_items.push_back(payload_store);
+    end
+    if (!write_items[0].item.write_data_began()) begin
       begin_write_data(write_items[0].item);
     end
-    if ((write_items.size() > 0) && get_write_data_ready()) begin
+    if (get_write_data_ready()) begin
       sample_write_data();
     end
   endtask
@@ -155,6 +180,13 @@ virtual class tvip_axi_monitor_base #(
       void'(response_items[id].pop_front());
     end
   endtask
+
+  protected function tvip_axi_item create_monitor_item();
+    ITEM  item;
+    item  = ITEM::type_id::create("axi_item");
+    item.set_context(configuration, status);
+    return item;
+  endfunction
 
   `tue_component_default_constructor(tvip_axi_monitor_base)
 endclass
