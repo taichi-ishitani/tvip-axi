@@ -12,7 +12,8 @@ FILE_LISTS	+= $(TVIP_COMMON_HOME)/compile.f
 FILE_LISTS	+= $(TVIP_AXI_HOME)/compile.f
 FILE_LISTS	+= $(TVIP_AXI_HOME)/sample/env/compile.f
 
-SOURCE_FILES	= $(TVIP_AXI_HOME)/sample/env/top.sv
+SOURCE_FILES	+= $(TVIP_AXI_HOME)/sample/env/tvip_axi_sample_delay.sv
+SOURCE_FILES	+= $(TVIP_AXI_HOME)/sample/env/top.sv
 
 SIMULATOR	?= vcs
 RANDOM_SEED	?= auto
@@ -25,6 +26,7 @@ TESTS	+= response_delay
 TESTS	+= ready_delay
 TESTS	+= out_of_order_response
 TESTS	+= read_interleave
+TESTS	+= wvalid_preceding_awvalid
 
 .PHONY: all $(TESTS) clean clean_all
 
