@@ -15,7 +15,8 @@ class tvip_axi_sample_test extends tue_test #(
 
   function void create_configuration();
     super.create_configuration();
-    void'(uvm_config_db #(tvip_axi_vif)::get(null, "", "vif", configuration.axi_cfg.vif));
+    void'(uvm_config_db #(tvip_axi_vif)::get(null, "", "vif[0]", configuration.axi_cfg[0].vif));
+    void'(uvm_config_db #(tvip_axi_vif)::get(null, "", "vif[1]", configuration.axi_cfg[1].vif));
     if (configuration.randomize()) begin
       `uvm_info(get_name(), $sformatf("configuration...\n%s", configuration.sprint()), UVM_NONE)
     end
@@ -28,10 +29,10 @@ class tvip_axi_sample_test extends tue_test #(
     super.build_phase(phase);
 
     master_agent  = tvip_axi_master_agent::type_id::create("master_agent", this);
-    master_agent.set_configuration(configuration.axi_cfg);
+    master_agent.set_configuration(configuration.axi_cfg[0]);
 
     slave_agent = tvip_axi_slave_agent::type_id::create("slave_agent", this);
-    slave_agent.set_configuration(configuration.axi_cfg);
+    slave_agent.set_configuration(configuration.axi_cfg[1]);
   endfunction
 
   function void connect_phase(uvm_phase phase);

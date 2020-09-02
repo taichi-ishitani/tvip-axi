@@ -20,7 +20,9 @@ virtual class tvip_axi_component_base #(
   endfunction
 
   virtual task begin_address(tvip_axi_item item);
-    void'(begin_tr(item));
+    if (!item.write_data_began()) begin
+      void'(begin_tr(item));
+    end
     item.begin_address();
   endtask
 
@@ -30,6 +32,9 @@ virtual class tvip_axi_component_base #(
 
   virtual task begin_write_data(tvip_axi_item item);
     if (item.is_write()) begin
+      if (!item.address_began()) begin
+        void'(begin_tr(item));
+      end
       item.begin_write_data();
     end
   endtask
