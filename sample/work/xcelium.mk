@@ -12,6 +12,7 @@ XMELAB_ARGS	+= -uvmhome CDNS-1.1d
 XMELAB_ARGS	+= -uvmnoautocompile
 XMELAB_ARGS	+= -timescale 1ns/1ps
 XMELAB_ARGs	+= -newperf
+XMELAB_ARGS	+= -warn_multiple_driver
 XMELAB_ARGS	+= -top worklib.top
 XMELAB_ARGS	+= -l xmelab.log
 
