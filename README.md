@@ -74,7 +74,6 @@ If you have any questions, problems, feedbacks, etc., you can post them on follo
 
 * [GitHub Issue Tracker](https://github.com/taichi-ishitani/tvip-axi/issues)
 * [Chat room](https://gitter.im/taichi-ishitani/tvip-axi)
-* [Mail](mailto:taichi730@gmail.com)
 
 ## Copyright
 
