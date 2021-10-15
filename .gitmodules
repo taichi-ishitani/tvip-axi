@@ -1,0 +1,6 @@
+[submodule "tvip-common"]
+	path = tvip-common
+	url = git@github.com:kazt81/tvip-common.git
+[submodule "tue"]
+	path = tue
+	url = git@github.com:kazt81/tue.git
