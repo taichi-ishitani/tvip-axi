@@ -43,12 +43,11 @@ class tvip_axi_ral_adapter extends uvm_reg_adapter;
   endfunction
 
   protected function uvm_status_e get_status(tvip_axi_item axi_item);
-    case (axi_item.response[0])
-      TVIP_AXI_OKAY:          return UVM_IS_OK;
-      TVIP_AXI_EXOKAY:        return UVM_IS_OK;
-      TVIP_AXI_SLAVE_ERROR:   return UVM_NOT_OK;
-      TVIP_AXI_DECODE_ERROR:  return UVM_NOT_OK;
-    endcase
+    if (axi_item.response[0] inside {TVIP_AXI_SLAVE_ERROR, TVIP_AXI_SLAVE_ERROR})
+      return UVM_NOT_OK;
+    if ($isunknown(axi_item.data[0]))
+      return UVM_HAS_X;
+    return UVM_IS_OK;
   endfunction
 
   `uvm_object_utils(tvip_axi_ral_adapter)

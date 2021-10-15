@@ -68,7 +68,7 @@ package tvip_axi_types_pkg;
     TVIP_AXI_WRAPPING_BURST     = 'b10
   } tvip_axi_burst_type;
 
-  typedef bit [`TVIP_AXI_MAX_DATA_WIDTH-1:0]  tvip_axi_data;
+  typedef logic [`TVIP_AXI_MAX_DATA_WIDTH-1:0]  tvip_axi_data;
 
   typedef bit [`TVIP_AXI_MAX_DATA_WIDTH/8-1:0]  tvip_axi_strobe;
 
