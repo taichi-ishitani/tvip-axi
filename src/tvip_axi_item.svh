@@ -187,6 +187,13 @@ class tvip_axi_item extends tue_sequence_item #(
     response_end_event.wait_on();
   endtask
 
+  task wait_for_request_done();
+    address_end_event.wait_on();
+    if (is_write()) begin
+      write_data_end_event.wait_on();
+    end
+  endtask
+
   `uvm_object_utils_begin(tvip_axi_item)
     `uvm_field_enum(tvip_axi_access_type, access_type, UVM_DEFAULT)
     `uvm_field_int(id, UVM_DEFAULT | UVM_HEX)

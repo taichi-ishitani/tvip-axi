@@ -1,80 +1,109 @@
 `ifndef TVIP_AXI_SLAVE_DRIVER_SVH
 `define TVIP_AXI_SLAVE_DRIVER_SVH
+typedef struct {
+  int           delay;
+  uvm_event     notifier;
+} tvip_axi_start_delay_item;
+
+class tvip_axi_slave_driver_start_delay_consumer;
+  protected tvip_axi_vif                          vif;
+  protected tue_fifo #(tvip_axi_start_delay_item) delay_queue[tvip_axi_id];
+  protected event                                 notifier;
+
+  function new(tvip_axi_vif vif);
+    this.vif  = vif;
+  endfunction
+
+  task consume_start_delay(
+    input tvip_axi_item item,
+    ref   tvip_axi_item item_fifo[$]
+  );
+    tvip_axi_start_delay_item delay_item;
+
+    item.wait_for_request_done();
+
+    delay_item.delay    = item.start_delay;
+    delay_item.notifier = new;
+    if (!delay_queue.exists(item.id)) begin
+      start_delay_thread(item.id);
+    end
+    delay_queue[item.id].put(delay_item);
+
+    delay_item.notifier.wait_on();
+    item_fifo.push_back(item);
+    ->notifier;
+  endtask
+
+  task wait_for_active_response();
+    @(notifier);
+  endtask
+
+  protected function void start_delay_thread(tvip_axi_id id);
+    delay_queue[id] = new("delay_queue", 0);
+    fork
+      automatic tvip_axi_id __id  = id;
+      delay_thread(__id);
+    join_none
+  endfunction
+
+  protected task delay_thread(tvip_axi_id id);
+    tvip_axi_start_delay_item item;
+    forever begin
+      delay_queue[id].get(item);
+      repeat (item.delay) begin
+        @(vif.slave_cb);
+      end
+      item.notifier.trigger();
+    end
+  endtask
+endclass
+
 class tvip_axi_slave_driver_response_item;
   tvip_axi_item item;
-  int           start_delay;
-  int           delay;
-  int           transfer_size;
+  int           size;
   int           index;
 
   function new(tvip_axi_item item);
-    this.item         = item;
-    this.start_delay  = start_delay;
-    this.delay        = -1;
+    this.item = item;
   endfunction
 
   function tvip_axi_id get_id();
     return item.id;
   endfunction
 
-  function tvip_axi_response get_response();
+  function tvip_axi_response get_response_status();
     return item.response[index];
   endfunction
 
   function tvip_axi_data get_data();
-    return item.data[index];
+    if (item.is_read()) begin
+      return item.data[index];
+    end
+    else begin
+      return '0;
+    end
   endfunction
 
   function bit get_last();
-    return is_last_response(1);
-  endfunction
-
-  function void consume_delay();
-    if (start_delay > 0) begin
-      --start_delay;
+    if (item.is_read()) begin
+      return (index + 1) == item.get_burst_length();
     end
     else begin
-      if (delay < 0) begin
-        delay = item.response_delay[index];
-      end
-      if (delay > 0) begin
-        --delay;
-      end
+      return 1;
     end
+  endfunction
+
+  function int get_delay();
+    return item.response_delay[index];
+  endfunction
+
+  function bit is_last_response_done();
+    return item.is_write() || (index == item.get_burst_length());
   endfunction
 
   function void next();
-    --delay;
-    --transfer_size;
-    ++index;
-  endfunction
-
-  function bit is_drivable();
-    return (start_delay == 0) && (delay == 0);
-  endfunction
-
-  function bit is_last_response(bit before_calling_next);
-    if (item.access_type == TVIP_AXI_WRITE_ACCESS) begin
-      return 1;
-    end
-    else if (before_calling_next) begin
-      return index == (item.burst_length - 1);
-    end
-    else begin
-      return index == item.burst_length;
-    end
-  endfunction
-
-  function bit is_end_response(bit before_calling_next);
-    if (item.access_type == TVIP_AXI_WRITE_ACCESS) begin
-      return 1;
-    end
-    else if (before_calling_next) begin
-      return transfer_size == 1;
-    end
-    else begin
-      return transfer_size == 0;
-    end
+    size  -= 1;
+    index += 1;
   endfunction
 endclass
 
@@ -85,49 +114,50 @@ typedef tvip_axi_sub_driver_base #(
 class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
   .BASE (tvip_axi_slave_sub_driver_base )
 );
-  protected bit                                 address_busy;
-  protected bit                                 default_address_ready;
-  protected bit                                 default_ready[2];
-  protected int                                 ready_delay_queue[2][$];
-  protected int                                 ready_delay[2];
-  protected int                                 preceding_writes;
-  protected tvip_axi_item                       response_queue[tvip_axi_id][$];
-  protected tvip_axi_slave_driver_response_item response_items[tvip_axi_id];
-  protected tvip_axi_id                         active_ids[tvip_axi_id];
-  protected tvip_axi_slave_driver_response_item current_response;
-  protected bit                                 response_busy;
+  protected int                                         ready_delay_queue[2][$];
+  protected int                                         preceded_ready_count[2];
+  protected tvip_axi_slave_driver_start_delay_consumer  start_delay_consumer;
+  protected tvip_axi_item                               response_queue[tvip_axi_id][$];
+  protected tvip_axi_slave_driver_response_item         active_responses[$];
+  protected tvip_axi_id                                 active_ids[$];
+  protected int                                         current_response_index;
 
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    start_delay_consumer  = new(vif);
+  endfunction
 
   task run_phase(uvm_phase phase);
-    forever @(vif.slave_cb, negedge vif.areset_n) begin
-      if (!vif.areset_n) begin
-        do_reset();
-      end
-      else begin
-        if ((current_response != null) && get_response_ack()) begin
-          response_busy = 0;
-          finish_response();
-        end
+    forever begin
+      do_reset();
+      fork
+        main();
+        @(negedge vif.areset_n);
+      join_any
+    end
+  endtask
 
-        if ((!address_busy) && get_address_valid()) begin
-          address_busy  = 1;
-          update_ready_delay_queue();
-        end
-        if (address_busy && get_address_ready()) begin
-          address_busy  = 0;
-        end
-        drive_address_channel();
-        if (is_write_component()) begin
-          drive_write_data_channel();
-        end
+  task put_request(tvip_axi_item request);
+    tvip_axi_id queue_id;
 
-        manage_response_buffer();
-        if ((current_response == null) && (response_items.size() > 0)) begin
-          get_next_response_item();
-        end
-        drive_response_channel();
+    ready_delay_queue[0].push_back(request.address_ready_delay);
+    if (is_write_component()) begin
+      foreach (request.write_data_ready_delay[i]) begin
+        ready_delay_queue[1].push_back(request.write_data_ready_delay[i]);
       end
     end
+
+    case (configuration.response_ordering)
+      TVIP_AXI_OUT_OF_ORDER:  queue_id  = request.id;
+      TVIP_AXI_IN_ORDER:      queue_id  = 0;
+    endcase
+
+    accept_tr(request);
+    fork
+      automatic tvip_axi_item __request   = request;
+      automatic tvip_axi_id   __queue_id  = queue_id;
+      start_delay_consumer.consume_start_delay(__request, response_queue[__queue_id]);
+    join_none
   endtask
 
   task begin_response(tvip_axi_item item);
@@ -136,293 +166,292 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
   endtask
 
   protected task do_reset();
-    foreach (item_buffer[i]) begin
-      end_tr(item_buffer[i]);
-    end
-
-    foreach (response_queue[i, j]) begin
-      if (!response_queue[i][j].ended()) begin
-        end_tr(response_queue[i][j]);
-      end
-    end
-
-    foreach (response_items[i]) begin
-      if (!response_items[i].item.ended()) begin
-        end_tr(response_items[i].item);
-      end
-    end
-
-    address_busy      = 0;
-    ready_delay       = '{-1, -1};
-    current_response  = null;
-    response_busy     = 0;
-    preceding_writes  = 0;
-    item_buffer.delete();
     ready_delay_queue[0].delete();
     ready_delay_queue[1].delete();
-    response_queue.delete();
-    response_items.delete();
+    preceded_ready_count[0] = 0;
+    preceded_ready_count[1] = 0;
+
+    foreach (response_queue[i]) begin
+      foreach (response_queue[i][j]) begin
+        if (response_queue[i][j].ended()) begin
+          end_tr(response_queue[i][j]);
+        end
+        response_queue[i].delete();
+      end
+    end
+
+    foreach (active_responses[i]) begin
+      if (active_responses[i].item.ended()) begin
+        end_tr(active_responses[i].item);
+      end
+    end
+    active_responses.delete();
     active_ids.delete();
 
-    if (configuration.reset_by_agent) begin
-      reset_if();
-    end
+    reset_if();
+    @(posedge vif.slave_cb.areset_n);
   endtask
 
   protected virtual task reset_if();
   endtask
 
-  protected task update_ready_delay_queue();
-    tvip_axi_item item;
-    int           length;
+  protected task main();
+    fork
+      drive_ready_thread(0);
+      drive_ready_thread(1);
+      response_thread();
+    join
+  endtask
 
-    uvm_wait_for_nba_region();
-    if (item_buffer.size() > 0) begin
-      if (item_buffer[$].address_begin_time == $time) begin
-        item  = item_buffer[$];
-      end
-    end
+  protected task drive_ready_thread(bit write_data_thread);
+    bit                       default_ready;
+    tvip_delay_configuration  delay_configuration;
+    int                       delay;
 
-    if (item != null) begin
-      ready_delay_queue[0].push_back(item.address_ready_delay);
-    end
-    else if (is_write_component()) begin
-      ready_delay_queue[0].push_back(
-        randomize_delay(configuration.awready_delay)
-      );
-    end
-    else begin
-      ready_delay_queue[0].push_back(
-        randomize_delay(configuration.arready_delay)
-      );
-    end
-
-    if (is_read_component()) begin
+    if (write_data_thread && is_read_component()) begin
       return;
     end
 
-    length  = (item != null) ? item.burst_length : get_burst_length();
-    for (int i = 0;i < length;++i) begin
-      if (preceding_writes > 0) begin
-        --preceding_writes;
-      end
-      else if (item != null) begin
-        ready_delay_queue[1].push_back(item.write_data_ready_delay[i]);
-      end
-      else begin
-        ready_delay_queue[1].push_back(randomize_delay(configuration.wready_delay));
-      end
+    if (is_read_component()) begin
+      default_ready       = configuration.default_arready;
+      delay_configuration = configuration.arready_delay;
     end
-  endtask
-
-  protected task drive_address_channel();
-    bit address_ready;
-
-    if (ready_delay[0] < 0) begin
-      ready_delay[0]  = ready_delay_queue[0].pop_front();
-    end
-
-    address_ready =
-      ((default_ready[0] == 1) && (ready_delay[0] <= 0)) ||
-      ((default_ready[0] == 0) && (ready_delay[0] == 0));
-    drive_address_ready(address_ready);
-
-    if (ready_delay[0] >= 0) begin
-      --ready_delay[0];
-    end
-  endtask
-
-  protected virtual task drive_address_ready(bit address_ready);
-  endtask
-
-  protected task drive_write_data_channel();
-    bit pop_ready_delay;
-    bit write_data_ready;
-
-    pop_ready_delay =
-      (ready_delay[1] < 0) && get_write_data_valid() && (get_write_data_ready() == default_ready[1]);
-    if (pop_ready_delay) begin
-      if (ready_delay_queue[1].size() > 0) begin
-        ready_delay[1]  = ready_delay_queue[1].pop_front();
-      end
-      else begin
-        ready_delay[1]  = randomize_delay(configuration.wready_delay);
-        ++preceding_writes;
-      end
-    end
-
-    write_data_ready  =
-      ((default_ready[1] == 1) && (ready_delay[1] <= 0)) ||
-      ((default_ready[1] == 0) && (ready_delay[1] == 0));
-    drive_write_data_ready(write_data_ready);
-
-    if (ready_delay[1] >= 0) begin
-      --ready_delay[1];
-    end
-  endtask
-
-  protected virtual task drive_write_data_ready(bit write_data_ready);
-  endtask
-
-  protected task manage_response_buffer();
-    while (item_buffer.size() > 0) begin
-      tvip_axi_item item;
-      item  = item_buffer.pop_front();
-      accept_tr(item);
-      case (configuration.response_ordering)
-        TVIP_AXI_OUT_OF_ORDER:
-          response_queue[item.id].push_back(item);
-        TVIP_AXI_IN_ORDER:
-          response_queue[0].push_back(item);
-      endcase
-    end
-
-    foreach (response_queue[i]) begin
-      if (response_queue[i].size() == 0) begin
-        continue;
-      end
-      else if (!response_queue[i][0].request_ended()) begin
-        continue;
-      end
-      else if (response_items.exists(i)) begin
-        continue;
-      end
-      else if (is_response_items_full()) begin
-        continue;
-      end
-
-      response_items[i] = new(response_queue[i].pop_front());
-      active_ids[i]     = i;
-    end
-  endtask
-
-  protected function bit is_response_items_full();
-    if (configuration.outstanding_responses == 0) begin
-      return 0;
+    else if (write_data_thread) begin
+      default_ready       = configuration.default_wready;
+      delay_configuration = configuration.wready_delay;
     end
     else begin
-      return response_items.size() == configuration.outstanding_responses;
+      default_ready       = configuration.default_awready;
+      delay_configuration = configuration.awready_delay;
     end
+
+    forever begin
+      wait_for_request_valid(write_data_thread);
+      get_ready_delay(write_data_thread, delay_configuration, delay);
+
+      if (default_ready && (delay > 0)) begin
+        drive_ready(write_data_thread, 0);
+        consume_delay(delay);
+        drive_ready(write_data_thread, 1);
+      end
+      else if (!default_ready) begin
+        consume_delay(delay);
+        drive_ready(write_data_thread, 1);
+        consume_delay(1);
+        drive_ready(write_data_thread, 0);
+      end
+    end
+  endtask
+
+  protected task wait_for_request_valid(bit write_data_thread);
+    do begin
+      @(vif.slave_cb);
+    end while (!get_request_valid(write_data_thread));
+  endtask
+
+  protected virtual function bit get_request_valid(bit write_data_thread);
   endfunction
 
-  protected task get_next_response_item();
-    tvip_axi_id                         key;
-    tvip_axi_slave_driver_response_item item;
+  protected task get_ready_delay(
+    input bit                       write_data_thread,
+    input tvip_delay_configuration  delay_configuration,
+    ref   int                       delay
+  );
+    int queque_index  = int'(write_data_thread);
 
-    if (configuration.response_ordering == TVIP_AXI_IN_ORDER) begin
-      key = 0;
+    if (ready_delay_queue[queque_index].size() == 0) begin
+      uvm_wait_for_nba_region();
     end
-    else if (!std::randomize(key) with { key inside {active_ids}; }) begin
+
+    if (ready_delay_queue[queque_index].size() > 0) begin
+      while (preceded_ready_count[queque_index] > 0) begin
+        preceded_ready_count[queque_index]  -= 1;
+        void'(ready_delay_queue[queque_index].pop_front());
+      end
+      delay = ready_delay_queue[queque_index].pop_front();
+    end
+    else begin
+      preceded_ready_count[queque_index]  += 1;
+      delay = randomize_ready_delay(delay_configuration);
+    end
+  endtask
+
+  protected function int randomize_ready_delay(tvip_delay_configuration delay_configuration);
+    int delay;
+
+    if (!std::randomize(delay) with {
+      `tvip_delay_constraint(delay, delay_configuration)
+    }) begin
       `uvm_fatal("RNDFLD", "Randomization failed")
     end
 
-    item                = response_items[key];
-    item.transfer_size  = get_transfer_size(item);
-    current_response    = item;
+    return delay;
+  endfunction
+
+  protected virtual task drive_ready(bit write_data_thread, bit ready);
   endtask
 
-  protected function int get_transfer_size(tvip_axi_slave_driver_response_item item);
-    if (is_write_component()) begin
-      return 1;
+  protected task response_thread();
+    tvip_axi_slave_driver_response_item item;
+    int                                 size;
+
+    forever begin
+      get_next_response_item(item);
+      if (item == null) begin
+        continue;
+      end
+
+      if (item.item.response_began()) begin
+        begin_response(item.item);
+      end
+
+      size  = get_response_size(item);
+      repeat (size) begin
+        execute_response_item(item);
+      end
+
+      if (item.is_last_response_done()) begin
+        active_responses.delete(current_response_index);
+        active_ids.delete(current_response_index);
+      end
     end
-    else if (configuration.protocol == TVIP_AXI4LITE) begin
-      return 1;
+  endtask
+
+  protected task get_next_response_item(ref tvip_axi_slave_driver_response_item item);
+    tvip_axi_slave_driver_response_item new_item;
+
+    if (no_response()) begin
+      start_delay_consumer.wait_for_active_response();
+      if (!vif.at_slave_cb_edge.triggered) begin
+        @(vif.at_slave_cb_edge);
+      end
     end
-    else if (!configuration.enable_response_interleaving) begin
-      return item.item.burst_length;
+
+    foreach (response_queue[id]) begin
+      if (response_queue[id].size() == 0) begin
+        continue;
+      end
+      if (!is_acceptable_response(id)) begin
+        continue;
+      end
+
+      new_item  = new(response_queue[id].pop_front());
+      active_responses.push_back(new_item);
+      active_ids.push_back(id);
+    end
+
+    if (active_responses.size() == 0) begin
+      item  = null;
+      return;
+    end
+
+    current_response_index  = select_response();
+    item                    = active_responses[current_response_index];
+  endtask
+
+  protected function bit no_response();
+    if (active_responses.size() > 0) begin
+      return 0;
+    end
+    foreach (response_queue[i]) begin
+      if (response_queue[i].size() > 0) begin
+        return 0;
+      end
+    end
+    return 1;
+  endfunction
+
+  protected function bit is_acceptable_response(tvip_axi_id id);
+    if (id inside {active_ids}) begin
+      return 0;
+    end
+    else if (configuration.outstanding_responses > 0) begin
+      return active_responses.size() < configuration.outstanding_responses;
     end
     else begin
-      return randomize_transfer_size(item);
+      return 1;
     end
   endfunction
 
-  protected function int randomize_transfer_size(tvip_axi_slave_driver_response_item item);
-    int transfer_size;
+  protected virtual function int select_response();
+    if (configuration.response_ordering == TVIP_AXI_OUT_OF_ORDER) begin
+      foreach (active_responses[i]) begin
+        randcase
+          1:  return i;
+          1:  continue;
+        endcase
+      end
+    end
+
+    return 0;
+  endfunction
+
+  protected virtual function int get_response_size(tvip_axi_slave_driver_response_item item);
+    if (is_write_component()) begin
+      return 1;
+    end
+    else if (!configuration.enable_response_interleaving) begin
+      return item.item.get_burst_length();
+    end
+    else begin
+      return randomize_response_size(item);
+    end
+  endfunction
+
+  protected virtual function int randomize_response_size(tvip_axi_slave_driver_response_item item);
+    int size;
     int min;
     int max;
     int remaining;
 
-    remaining = item.item.burst_length - item.index;
+    remaining = item.item.get_burst_length() - item.index;
     min       = configuration.min_interleave_size;
     max       = configuration.max_interleave_size;
-    if (std::randomize(transfer_size) with {
-      transfer_size inside {[1:remaining]};
+    if (std::randomize(size) with {
+      size inside {[1:remaining]};
       if ((min > 0) && (remaining >= min)) {
-        transfer_size >= min;
+        size >= min;
       }
-      if (max > 0) {
-        transfer_size <= max;
+      if ((max > 0)) {
+        size <= max;
       }
     }) begin
-      return transfer_size;
+      return size;
     end
     else begin
       `uvm_fatal("RNDFLD", "Randomization failed")
     end
   endfunction
 
-  protected task drive_response_channel();
-    bit valid;
-    int index;
+  protected task execute_response_item(tvip_axi_slave_driver_response_item item);
+    consume_delay(item.get_delay());
+    drive_response(1, item);
+    wait_for_response_ready();
+    drive_response(0, null);
 
-    valid = 0;
-    if (current_response != null) begin
-      current_response.consume_delay();
-      valid = current_response.is_drivable();
-    end
-
-    if (valid && (!response_busy)) begin
-      response_busy = 1;
-      begin_response(current_response.item);
-      drive_active_response();
-    end
-    else if (!valid) begin
-      drive_idle_response();
+    item.next();
+    if (item.is_last_response_done()) begin
+      end_response(item.item);
     end
   endtask
 
-  protected virtual task drive_active_response();
+  protected virtual task drive_response(bit valid, tvip_axi_slave_driver_response_item item);
   endtask
 
-  protected virtual task drive_idle_response();
+  protected task wait_for_response_ready();
+    do begin
+      @(vif.slave_cb);
+    end while (!get_response_ready());
   endtask
 
-  protected task finish_response();
-    current_response.next();
-    if (current_response.is_end_response(0)) begin
-      if (current_response.is_last_response(0)) begin
-        remove_response_item();
-      end
-      current_response  = null;
-    end
-  endtask
-
-  protected task remove_response_item();
-    tvip_axi_id id;
-
-    case (configuration.response_ordering)
-      TVIP_AXI_OUT_OF_ORDER:
-        id  = current_response.item.id;
-      TVIP_AXI_IN_ORDER:
-        id  = 0;
-    endcase
-
-    response_items.delete(id);
-    active_ids.delete(id);
-    end_response(current_response.item);
-  endtask
-
-  protected function int randomize_delay(tvip_delay_configuration delay_configuration);
-    int delay;
-    if (std::randomize(delay) with {
-      `tvip_delay_constraint(delay, delay_configuration)
-    }) begin
-      return delay;
-    end
-    else begin
-      `uvm_fatal("RNDFLD", "Randomization failed")
-    end
+  protected virtual function bit get_response_ready();
   endfunction
+
+  protected task consume_delay(int delay);
+    repeat (delay) begin
+      @(vif.slave_cb);
+    end
+  endtask
 
   `tue_component_default_constructor(tvip_axi_slave_sub_driver)
 endclass
@@ -433,39 +462,43 @@ class tvip_axi_slave_write_driver extends tvip_axi_slave_sub_driver;
     write_component = 1;
   endfunction
 
-  function void build_phase(uvm_phase phase);
-    super.build_phase(phase);
-    default_ready[0]  = configuration.default_awready;
-    default_ready[1]  = configuration.default_wready;
+  protected task reset_if();
+    vif.awready = configuration.default_awready;
+    vif.wready  = configuration.default_wready;
+    vif.bvalid  = '0;
+    vif.bid     = '0;
+    vif.bresp   = tvip_axi_response'(0);
+  endtask
+
+  protected function bit get_request_valid(bit write_data_thread);
+    if (write_data_thread) begin
+      return vif.slave_cb.wvalid;
+    end
+    else begin
+      return vif.slave_cb.awvalid;
+    end
   endfunction
 
-  protected task reset_if();
-    vif.awready = default_ready[0];
-    vif.wready  = default_ready[1];
-    vif.bvalid  = 0;
-    vif.bid     = 0;
-    vif.bresp   = TVIP_AXI_OKAY;
+  protected task drive_ready(bit write_data_thread, bit ready);
+    if (write_data_thread) begin
+      vif.slave_cb.wready <= ready;
+    end
+    else begin
+      vif.slave_cb.awready  <= ready;
+    end
   endtask
 
-  protected task drive_address_ready(bit address_ready);
-    vif.slave_cb.awready  <= address_ready;
+  protected task drive_response(bit valid, tvip_axi_slave_driver_response_item item);
+    vif.slave_cb.bvalid <= valid;
+    if (valid) begin
+      vif.slave_cb.bid    <= item.get_id();
+      vif.slave_cb.bresp  <= item.get_response_status();
+    end
   endtask
 
-  protected task drive_write_data_ready(bit write_data_ready);
-    vif.slave_cb.wready <= write_data_ready;
-  endtask
-
-  protected task drive_active_response();
-    vif.slave_cb.bvalid <= 1;
-    vif.slave_cb.bid    <= current_response.get_id();
-    vif.slave_cb.bresp  <= current_response.get_response();
-  endtask
-
-  protected task drive_idle_response();
-    vif.slave_cb.bvalid <= 0;
-    vif.slave_cb.bid    <= 0;
-    vif.slave_cb.bresp  <= TVIP_AXI_OKAY;
-  endtask
+  protected function bit get_response_ready();
+    return vif.slave_cb.bready;
+  endfunction
 
   `uvm_component_utils(tvip_axi_slave_write_driver)
 endclass
@@ -476,42 +509,36 @@ class tvip_axi_slave_read_driver extends tvip_axi_slave_sub_driver;
     write_component = 0;
   endfunction
 
-  function void build_phase(uvm_phase phase);
-    super.build_phase(phase);
-    default_ready[0]  = configuration.default_arready;
+  protected task reset_if();
+    vif.arready = configuration.default_arready;
+    vif.rvalid  = '0;
+    vif.rid     = '0;
+    vif.rresp   = tvip_axi_response'(0);
+    vif.rdata   = '0;
+    vif.rlast   = '0;
+  endtask
+
+  protected function bit get_request_valid(bit write_data_thread);
+    return vif.slave_cb.arvalid;
   endfunction
 
-  protected task reset_if();
-    vif.arready = default_address_ready;
-    vif.rvalid  = 0;
-    vif.rid     = 0;
-    vif.rdata   = 0;
-    vif.rresp   = TVIP_AXI_OKAY;
-    vif.rlast   = 0;
+  protected task drive_ready(bit write_data_thread, bit ready);
+    vif.slave_cb.arready  <= ready;
   endtask
 
-  protected task drive_address_ready(bit address_ready);
-    vif.slave_cb.arready  <= address_ready;
+  protected task drive_response(bit valid, tvip_axi_slave_driver_response_item item);
+    vif.slave_cb.rvalid <= valid;
+    if (valid) begin
+      vif.slave_cb.rid    <= item.get_id();
+      vif.slave_cb.rresp  <= item.get_response_status();
+      vif.slave_cb.rdata  <= item.get_data();
+      vif.slave_cb.rlast  <= item.get_last();
+    end
   endtask
 
-  protected task drive_write_data_ready(bit write_data_ready);
-  endtask
-
-  protected task drive_active_response();
-    vif.slave_cb.rvalid <= 1;
-    vif.slave_cb.rid    <= current_response.get_id();
-    vif.slave_cb.rdata  <= current_response.get_data();
-    vif.slave_cb.rresp  <= current_response.get_response();
-    vif.slave_cb.rlast  <= current_response.get_last();
-  endtask
-
-  protected task drive_idle_response();
-    vif.slave_cb.rvalid <= 0;
-    vif.slave_cb.rid    <= 0;
-    vif.slave_cb.rdata  <= 0;
-    vif.slave_cb.rresp  <= TVIP_AXI_OKAY;
-    vif.slave_cb.rlast  <= 0;
-  endtask
+  protected function bit get_response_ready();
+    return vif.slave_cb.rready;
+  endfunction
 
   `uvm_component_utils(tvip_axi_slave_read_driver)
 endclass

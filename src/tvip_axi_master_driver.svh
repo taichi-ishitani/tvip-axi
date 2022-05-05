@@ -1,5 +1,7 @@
 `ifndef TVIP_AXI_MASTER_DRIVER_SVH
 `define TVIP_AXI_MASTER_DRIVER_SVH
+typedef tue_fifo #(tvip_axi_item) tvip_axi_request_item_queue;
+
 typedef tvip_axi_sub_driver_base #(
   .ITEM (tvip_axi_master_item )
 ) tvip_axi_master_sub_driver_base;
@@ -7,49 +9,26 @@ typedef tvip_axi_sub_driver_base #(
 class tvip_axi_master_sub_driver extends tvip_axi_component_base #(
   .BASE (tvip_axi_master_sub_driver_base  )
 );
-  protected int                     start_delay;
-  protected tvip_axi_item           current_address;
-  protected tvip_axi_item           write_items[$];
-  protected tvip_axi_item           current_write_data;
-  protected int                     write_data_delay;
-  protected int                     write_data_index;
-  protected tvip_axi_payload_store  response_items[tvip_axi_id][$];
-  protected bit                     default_response_ready;
-  protected int                     response_ready_delay;
+  protected tvip_axi_request_item_queue address_queue;
+  protected tvip_axi_request_item_queue write_data_queue;
+  protected tvip_axi_payload_store      response_stores[tvip_axi_id][$];
+  protected bit                         default_response_ready;
+
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    address_queue = new("address_queue", 0);
+    if (is_write_component()) begin
+      write_data_queue  = new("write_data_queue", 0);
+    end
+  endfunction
 
   task run_phase(uvm_phase phase);
-    forever @(vif.master_cb, negedge vif.areset_n) begin
-      if (!vif.areset_n) begin
-        do_reset();
-      end
-      else begin
-        if ((current_address != null) && get_address_ack()) begin
-          finish_address();
-        end
-        if ((current_write_data != null) && get_write_data_ack()) begin
-          finish_write_data();
-        end
-        if (get_response_valid() && (response_ready_delay < 0)) begin
-          get_next_response_delay();
-        end
-        if (get_response_ack()) begin
-          sample_response();
-        end
-
-        if (current_address == null) begin
-          get_next_request();
-        end
-        drive_address_channel();
-
-        if (is_write_component()) begin
-          if ((current_write_data == null) && (write_items.size() > 0)) begin
-            get_next_write_data();
-          end
-          drive_write_data_channel();
-        end
-
-        drive_response_channel();
-      end
+    forever begin
+      do_reset();
+      fork
+        main();
+        @(negedge vif.areset_n);
+      join_any
     end
   endtask
 
@@ -60,291 +39,242 @@ class tvip_axi_master_sub_driver extends tvip_axi_component_base #(
     end
   endtask
 
-  protected task do_reset();
-    if (current_address != null) begin
-      end_tr(current_address);
+  task put_request(tvip_axi_item request);
+    accept_tr(request);
+
+    address_queue.put(request);
+    if (write_data_queue != null) begin
+      write_data_queue.put(request);
     end
 
-    foreach (write_items[i]) begin
-      if (!write_items[i].ended()) begin
-        end_tr(write_items[i]);
+    response_stores[request.id]
+      .push_back(tvip_axi_payload_store::create(request));
+  endtask
+
+  protected virtual task do_reset();
+    tvip_axi_item item;
+
+    while (!address_queue.is_empty()) begin
+      void'(address_queue.try_get(item));
+      if (!item.ended()) begin
+        end_tr(item);
       end
     end
-    write_items.delete();
 
-    foreach (response_items[i, j]) begin
-      if (!response_items[i][j].item.ended()) begin
-        end_tr(response_items[i][j].item);
+    if (write_data_queue != null) begin
+      while (!write_data_queue.is_empty()) begin
+        void'(write_data_queue.try_get(item));
+        if (!item.ended()) begin
+          end_tr(item);
+        end
       end
     end
-    response_items.delete();
 
-    current_address       = null;
-    current_write_data    = null;
-    start_delay           = 0;
-    write_data_delay      = 0;
-    write_data_index      = 0;
-    response_ready_delay  = -1;
-
-    if (configuration.reset_by_agent) begin
-      reset_if();
+    foreach (response_stores[i, j]) begin
+      if (!response_stores[i][j].item.ended()) begin
+        end_tr(response_stores[i][j].item);
+      end
     end
+    response_stores.delete();
+
+    reset_if();
+    @(posedge vif.master_cb.areset_n);
   endtask
 
   protected virtual task reset_if();
   endtask
 
-  protected task get_next_request();
-    uvm_wait_for_nba_region();
-    if (item_buffer.size() == 0) begin
+  protected task main();
+    fork
+      address_thread();
+      write_data_thread();
+      response_thread();
+    join
+  endtask
+
+  protected task address_thread();
+    tvip_axi_item item;
+
+    forever begin
+      get_item_from_queue(address_queue, item);
+      consume_delay(item.start_delay);
+      begin_address(item);
+      drive_address(1, item);
+      wait_for_address_ready();
+      drive_address(0, null);
+      end_address(item);
+    end
+  endtask
+
+  protected virtual task drive_address(
+    bit           valid,
+    tvip_axi_item item
+  );
+  endtask
+
+  protected task wait_for_address_ready();
+    do begin
+      @(vif.master_cb);
+    end while (!get_address_ready());
+  endtask
+
+  protected virtual function bit get_address_ready();
+  endfunction
+
+  protected task write_data_thread();
+    tvip_axi_item item;
+
+    if (is_read_component()) begin
       return;
     end
 
-    current_address = item_buffer.pop_front();
-    start_delay     = current_address.start_delay;
+    forever begin
+      get_item_from_queue(write_data_queue, item);
 
-    if (current_address.is_write()) begin
-      write_items.push_back(current_address);
-    end
-
-    response_items[current_address.id].push_back(
-      tvip_axi_payload_store::create(current_address)
-    );
-  endtask
-
-  protected task drive_address_channel();
-    bit valid;
-
-    if (start_delay > 0) begin
-      --start_delay;
-    end
-
-    valid = ((current_address != null) && (start_delay == 0));
-    if (valid && (!current_address.address_began())) begin
-      begin_address(current_address);
-    end
-
-    drive_address_valid(valid);
-    drive_id(get_id_value(valid));
-    drive_address(get_address_value(valid));
-    drive_burst_length(get_burst_length_value(valid));
-    drive_burst_size(get_burst_size_value(valid));
-    drive_burst_type(get_burst_type_value(valid));
-    drive_qos(get_qos_value(valid));
-  endtask
-
-  protected virtual function tvip_axi_id get_id_value(bit valid);
-    if (valid) begin
-      return current_address.id;
-    end
-    else begin
-      return '0;  //  TBD
-    end
-  endfunction
-
-  protected virtual function tvip_axi_address get_address_value(bit valid);
-    if (valid) begin
-      return current_address.address;
-    end
-    else begin
-      return '0;  //  TBD
-    end
-  endfunction
-
-  protected virtual function tvip_axi_burst_length get_burst_length_value(bit valid);
-    if (valid) begin
-      return pack_burst_length(current_address.get_burst_length());
-    end
-    else begin
-      return '0;  //  TBD
-    end
-  endfunction
-
-  protected virtual function tvip_axi_burst_size get_burst_size_value(bit valid);
-    if (valid) begin
-      return pack_burst_size(current_address.get_burst_size());
-    end
-    else begin
-      return TVIP_AXI_BURST_SIZE_1_BYTE;  //  TBD
-    end
-  endfunction
-
-  protected virtual function tvip_axi_burst_type get_burst_type_value(bit valid);
-    if (valid) begin
-      return current_address.burst_type;
-    end
-    else begin
-      return TVIP_AXI_FIXED_BURST;  //  TBD
-    end
-  endfunction
-
-  protected virtual function tvip_axi_qos get_qos_value(bit valid);
-    if (valid) begin
-      return current_address.qos;
-    end
-    else begin
-      return '0;  //  TBD
-    end
-  endfunction
-
-  protected virtual task drive_address_valid(bit valid);
-  endtask
-
-  protected virtual task drive_id(tvip_axi_id id);
-  endtask
-
-  protected virtual task drive_address(tvip_axi_address address);
-  endtask
-
-  protected virtual task drive_burst_length(tvip_axi_burst_length burst_length);
-  endtask
-
-  protected virtual task drive_burst_size(tvip_axi_burst_size burst_size);
-  endtask
-
-  protected virtual task drive_burst_type(tvip_axi_burst_type burst_type);
-  endtask
-
-  protected virtual task drive_qos(tvip_axi_qos qos);
-  endtask
-
-  protected virtual task finish_address();
-    end_address(current_address);
-    current_address = null;
-  endtask
-
-  protected task get_next_write_data();
-    current_write_data  = write_items.pop_front();
-    write_data_delay    = current_write_data.write_data_delay[0];
-    write_data_index    = 0;
-  endtask
-
-  protected task drive_write_data_channel();
-    bit valid;
-
-    if ((current_write_data != null) && current_write_data.address_began()) begin
-      if (write_data_delay > 0) begin
-        --write_data_delay;
+      for (int i = 0;i < item.get_burst_length();++i) begin
+        consume_delay(item.write_data_delay[i]);
+        if (i == 0) begin
+          begin_write_data(item);
+        end
+        drive_write_data(1, item, i);
+        wait_for_write_data_ready();
+        drive_write_data(0, null, 0);
       end
-      valid = (write_data_delay == 0);
-    end
-    else begin
-      valid = 0;
-    end
 
-    if (valid && (!current_write_data.write_data_began())) begin
-      begin_write_data(current_write_data);
+      end_write_data(item);
     end
-
-    drive_write_data_valid(valid);
-    drive_write_data(get_write_data_value(valid));
-    drive_strobe(get_strobe_value(valid));
-    drive_write_data_last(get_write_data_last_value(valid));
   endtask
 
-  protected virtual function tvip_axi_data get_write_data_value(bit valid);
+  protected virtual task drive_write_data(
+    bit           valid,
+    tvip_axi_item item,
+    int           index
+  );
+    vif.master_cb.wvalid  <= valid;
     if (valid) begin
-      return current_write_data.get_data(write_data_index);
-    end
-    else begin
-      return '0;  //  TBD
-    end
-  endfunction
-
-  protected virtual function tvip_axi_strobe get_strobe_value(bit valid);
-    if (valid) begin
-      return current_write_data.get_strobe(write_data_index);
-    end
-    else begin
-      return '0;  //  TBD
-    end
-  endfunction
-
-  protected virtual function bit get_write_data_last_value(bit valid);
-    if (valid) begin
-      return (
-        write_data_index == (current_write_data.get_burst_length() - 1)
-      ) ? '1 : '0;
-    end
-    else begin
-      return '0;  //  TBD
-    end
-  endfunction
-
-  protected virtual task drive_write_data_valid(bit valid);
-  endtask
-
-  protected virtual task drive_write_data(tvip_axi_data data);
-  endtask
-
-  protected virtual task drive_strobe(tvip_axi_strobe strobe);
-  endtask
-
-  protected virtual task drive_write_data_last(bit last);
-  endtask
-
-  protected virtual task finish_write_data();
-    if (write_data_index == (current_write_data.get_burst_length() - 1)) begin
-      end_write_data(current_write_data);
-      current_write_data  = null;
-    end
-    else begin
-      ++write_data_index;
-      write_data_delay  = current_write_data.write_data_delay[write_data_index];
+      vif.master_cb.wdata <= item.data[index];
+      vif.master_cb.wstrb <= item.strobe[index];
+      if (configuration.protocol == TVIP_AXI4) begin
+        vif.master_cb.wlast <= index == (item.get_burst_length() - 1);
+      end
     end
   endtask
 
-  protected task get_next_response_delay();
+  protected task wait_for_write_data_ready();
+    do begin
+      @(vif.master_cb);
+    end while (!vif.master_cb.wready);
+  endtask
+
+  protected task response_thread();
+    bit         busy;
     tvip_axi_id id;
-    int         index;
+    tvip_axi_id current_id;
+    int         delay;
 
-    if (get_response_ready() != default_response_ready) begin
-      return;
+    forever begin
+      wait_for_response_valid();
+
+      id  = get_response_id();
+      if ((!busy) || (id != current_id)) begin
+        if (is_valid_response(id)) begin
+          busy        = 1;
+          current_id  = id;
+          if (!response_stores[current_id][0].item.response_began()) begin
+            begin_response(response_stores[current_id][0].item);
+          end
+        end
+        else begin
+          busy  = 0;
+          `uvm_warning("UNEXPECTED_RESPONSE", $sformatf("unexpected response: id %h", id))
+          continue;
+        end
+      end
+
+      delay = get_response_ready_delay(current_id);
+      if (default_response_ready) begin
+        sample_response(current_id, busy);
+        if (delay > 0) begin
+          drive_response_ready(0);
+          consume_delay(delay);
+          drive_response_ready(1);
+        end
+      end
+      else begin
+        consume_delay(delay);
+        drive_response_ready(1);
+        consume_delay(1);
+        sample_response(current_id, busy);
+        drive_response_ready(0);
+      end
     end
-
-    id  = get_response_id();
-    if ((!response_items.exists(id)) || (response_items[id].size() == 0)) begin
-      return;
-    end
-
-    index                 = response_items[id][0].get_stored_response_count();
-    response_ready_delay  = response_items[id][0].item.response_ready_delay[index];
   endtask
 
-  protected task drive_response_channel();
-    bit response_ready;
-
-    response_ready  = (
-      ((default_response_ready == 1) && (response_ready_delay <= 0)) ||
-      ((default_response_ready == 0) && (response_ready_delay == 0))
-    ) ? 1 : 0;
-    drive_response_ready(response_ready);
-
-    if (response_ready_delay >= 0) begin
-      --response_ready_delay;
-    end
+  protected task wait_for_response_valid();
+    do begin
+      @(vif.master_cb);
+    end while (!get_response_valid());
   endtask
+
+  protected virtual function bit get_response_valid();
+  endfunction
+
+  protected virtual function tvip_axi_id get_response_id();
+  endfunction
+
+  protected virtual function tvip_axi_data get_response_data();
+  endfunction
+
+  protected virtual function tvip_axi_response get_response_status();
+  endfunction
+
+  protected virtual function logic get_response_last();
+  endfunction
+
+  protected function bit is_valid_response(tvip_axi_id id);
+    return response_stores.exists(id) && response_stores[id].size() > 0;
+  endfunction
+
+  protected function int get_response_ready_delay(tvip_axi_id id);
+    tvip_axi_payload_store  store;
+    int                     index;
+    store = response_stores[id][0];
+    index = store.get_stored_response_count();
+    return store.item.response_ready_delay[index];
+  endfunction
 
   protected virtual task drive_response_ready(bit ready);
   endtask
 
-  protected task sample_response();
-    tvip_axi_id id;
+  protected task sample_response(
+    input tvip_axi_id id,
+    ref   bit         busy
+  );
+    tvip_axi_payload_store  store;
 
-    id  = get_response_id();
-    if ((!response_items.exists(id)) || (response_items[id].size() == 0)) begin
-      return;
-    end
-
-    if (!response_items[id][0].item.response_began()) begin
-      begin_response(response_items[id][0].item);
-    end
-
-    response_items[id][0].store_response(get_response(), get_read_data());
+    store = response_stores[id][0];
+    store.store_response(get_response_status(), get_response_data());
     if (get_response_last()) begin
-      response_items[id][0].pack_response();
-      end_response(response_items[id][0].item);
-      void'(response_items[id].pop_front());
+      store.pack_response();
+      end_response(store.item);
+      void'(response_stores[id].pop_front());
+      busy  = 0;
+    end
+  endtask
+
+  protected task get_item_from_queue(
+    input tvip_axi_request_item_queue queue,
+    ref   tvip_axi_item               item
+  );
+    queue.get(item);
+    if (!vif.at_master_cb_edge.triggered) begin
+      @(vif.at_master_cb_edge);
+    end
+  endtask
+
+  protected task consume_delay(int delay);
+    repeat (delay) begin
+      @(vif.master_cb);
     end
   endtask
 
@@ -363,62 +293,58 @@ class tvip_axi_master_write_driver extends tvip_axi_master_sub_driver;
   endfunction
 
   protected task reset_if();
-    vif.awvalid = 0;
-    vif.awid    = get_id_value(0);
-    vif.awaddr  = get_address_value(0);
-    vif.awlen   = get_burst_length_value(0);
-    vif.awsize  = get_burst_size_value(0);
-    vif.awburst = get_burst_type_value(0);
-    vif.wvalid  = 0;
-    vif.wdata   = get_write_data_value(0);
-    vif.wstrb   = get_strobe_value(0);
-    vif.wlast   = get_write_data_last_value(0);
-    vif.bready  = default_response_ready;
+    vif.awvalid = '0;
+    vif.awid    = '0;
+    vif.awaddr  = '0;
+    vif.awlen   = '0;
+    vif.awsize  = tvip_axi_burst_size'(0);
+    vif.awburst = tvip_axi_burst_type'(0);
+    vif.awqos   = '0;
+    vif.wvalid  = '0;
+    vif.wdata   = '0;
+    vif.wstrb   = '0;
+    vif.wlast   = '0;
+    vif.bready  = configuration.default_bready;
   endtask
 
-  protected task drive_address_valid(bit valid);
+  protected task drive_address(
+    bit           valid,
+    tvip_axi_item item
+  );
     vif.master_cb.awvalid <= valid;
+    if (valid) begin
+      vif.master_cb.awaddr  <= item.address;
+      vif.master_cb.awid    <= item.id;
+      vif.master_cb.awlen   <= item.get_packed_burst_length();
+      vif.master_cb.awsize  <= item.get_packed_burst_size();
+      vif.master_cb.awburst <= item.burst_type;
+      vif.master_cb.awqos   <= item.qos;
+    end
   endtask
 
-  protected task drive_id(tvip_axi_id id);
-    vif.master_cb.awid  <= id;
-  endtask
+  protected function bit get_address_ready();
+    return vif.master_cb.awready;
+  endfunction
 
-  protected task drive_address(tvip_axi_address address);
-    vif.master_cb.awaddr  <= address;
-  endtask
+  protected function bit get_response_valid();
+    return vif.master_cb.bvalid;
+  endfunction
 
-  protected task drive_burst_length(tvip_axi_burst_length burst_length);
-    vif.master_cb.awlen <= burst_length;
-  endtask
+  protected function tvip_axi_id get_response_id();
+    return vif.master_cb.bid;
+  endfunction
 
-  protected task drive_burst_size(tvip_axi_burst_size burst_size);
-    vif.master_cb.awsize  <= burst_size;
-  endtask
+  protected function tvip_axi_data get_response_data();
+    return '0;
+  endfunction
 
-  protected task drive_burst_type(tvip_axi_burst_type burst_type);
-    vif.master_cb.awburst <= burst_type;
-  endtask
+  protected function tvip_axi_response get_response_status();
+    return vif.master_cb.bresp;
+  endfunction
 
-  protected task drive_qos(tvip_axi_qos qos);
-    vif.master_cb.awqos <= qos;
-  endtask
-
-  protected task drive_write_data_valid(bit valid);
-    vif.master_cb.wvalid  <= valid;
-  endtask
-
-  protected task drive_write_data(tvip_axi_data data);
-    vif.master_cb.wdata <= data;
-  endtask
-
-  protected task drive_strobe(tvip_axi_strobe strobe);
-    vif.master_cb.wstrb <= strobe;
-  endtask
-
-  protected task drive_write_data_last(bit last);
-    vif.master_cb.wlast <= last;
-  endtask
+  protected function logic get_response_last();
+    return '1;
+  endfunction
 
   protected task drive_response_ready(bit ready);
     vif.master_cb.bready  <= ready;
@@ -439,42 +365,54 @@ class tvip_axi_master_read_driver extends tvip_axi_master_sub_driver;
   endfunction
 
   protected task reset_if();
-    vif.arvalid = 0;
-    vif.arid    = get_id_value(0);
-    vif.araddr  = get_address_value(0);
-    vif.arlen   = get_burst_length_value(0);
-    vif.arsize  = get_burst_size_value(0);
-    vif.arburst = get_burst_type_value(0);
-    vif.rready  = default_response_ready;
+    vif.arvalid = '0;
+    vif.arid    = '0;
+    vif.araddr  = '0;
+    vif.arlen   = '0;
+    vif.arsize  = tvip_axi_burst_size'(0);
+    vif.arburst = tvip_axi_burst_type'(0);
+    vif.arqos   = '0;
+    vif.rready  = configuration.default_rready;
   endtask
 
-  protected task drive_address_valid(bit valid);
+  protected task drive_address(
+    bit           valid,
+    tvip_axi_item item
+  );
     vif.master_cb.arvalid <= valid;
+    if (valid) begin
+      vif.master_cb.araddr  <= item.address;
+      vif.master_cb.arid    <= item.id;
+      vif.master_cb.arlen   <= item.get_packed_burst_length();
+      vif.master_cb.arsize  <= item.get_packed_burst_size();
+      vif.master_cb.arburst <= item.burst_type;
+      vif.master_cb.arqos   <= item.qos;
+    end
   endtask
 
-  protected task drive_id(tvip_axi_id id);
-    vif.master_cb.arid  <= id;
-  endtask
+  protected function bit get_address_ready();
+    return vif.master_cb.arready;
+  endfunction
 
-  protected task drive_address(tvip_axi_address address);
-    vif.master_cb.araddr  <= address;
-  endtask
+  protected function bit get_response_valid();
+    return vif.master_cb.rvalid;
+  endfunction
 
-  protected task drive_burst_length(tvip_axi_burst_length burst_length);
-    vif.master_cb.arlen <= burst_length;
-  endtask
+  protected function tvip_axi_id get_response_id();
+    return vif.master_cb.rid;
+  endfunction
 
-  protected task drive_burst_size(tvip_axi_burst_size burst_size);
-    vif.master_cb.arsize  <= burst_size;
-  endtask
+  protected function tvip_axi_data get_response_data();
+    return vif.master_cb.rdata;
+  endfunction
 
-  protected task drive_burst_type(tvip_axi_burst_type burst_type);
-    vif.master_cb.arburst <= burst_type;
-  endtask
+  protected function tvip_axi_response get_response_status();
+    return vif.master_cb.rresp;
+  endfunction
 
-  protected task drive_qos(tvip_axi_qos qos);
-    vif.master_cb.arqos <= qos;
-  endtask
+  protected function logic get_response_last();
+    return (configuration.protocol == TVIP_AXI4LITE) || vif.master_cb.rlast;
+  endfunction
 
   protected task drive_response_ready(bit ready);
     vif.master_cb.rready  <= ready;

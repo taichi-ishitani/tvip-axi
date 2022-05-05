@@ -6,7 +6,6 @@ class tvip_axi_sub_driver_base #(
   .CONFIGURATION  (tvip_axi_configuration ),
   .STATUS         (tvip_axi_status        )
 );
-  protected tvip_axi_item       item_buffer[$];
   protected uvm_driver #(ITEM)  root_driver;
 
   function new(string name = "tvip_axi_sub_driver_base", uvm_component parent = null);
@@ -15,7 +14,6 @@ class tvip_axi_sub_driver_base #(
   endfunction
 
   virtual task put_request(tvip_axi_item request);
-    item_buffer.push_back(request);
   endtask
 
   virtual task put_response(tvip_axi_item response);

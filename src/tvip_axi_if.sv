@@ -9,7 +9,6 @@ interface tvip_axi_if (
   //  Write Address Channel
   logic                 awvalid;
   logic                 awready;
-  logic                 awack;
   tvip_axi_id           awid;
   tvip_axi_address      awaddr;
   tvip_axi_burst_length awlen;
@@ -19,20 +18,17 @@ interface tvip_axi_if (
   //  Write Data Channel
   logic                 wvalid;
   logic                 wready;
-  logic                 wack;
   tvip_axi_data         wdata;
   tvip_axi_strobe       wstrb;
   logic                 wlast;
   //  Write Response Channel
   logic                 bvalid;
   logic                 bready;
-  logic                 back;
   tvip_axi_id           bid;
   tvip_axi_response     bresp;
   //  Read Address Channel
   logic                 arvalid;
   logic                 arready;
-  logic                 arack;
   tvip_axi_id           arid;
   tvip_axi_address      araddr;
   tvip_axi_burst_length arlen;
@@ -42,22 +38,15 @@ interface tvip_axi_if (
   //  Read Data Channel
   logic                 rvalid;
   logic                 rready;
-  logic                 rack;
   tvip_axi_id           rid;
   tvip_axi_data         rdata;
   tvip_axi_response     rresp;
   logic                 rlast;
 
-  assign  awack = (awvalid && awready) ? '1 : '0;
-  assign  wack  = (wvalid  && wready ) ? '1 : '0;
-  assign  back  = (bvalid  && bready ) ? '1 : '0;
-  assign  arack = (arvalid && arready) ? '1 : '0;
-  assign  rack  = (rvalid  && rready ) ? '1 : '0;
-
   clocking master_cb @(posedge aclk);
+    input   areset_n;
     output  awvalid;
     input   awready;
-    input   awack;
     output  awid;
     output  awaddr;
     output  awlen;
@@ -66,18 +55,15 @@ interface tvip_axi_if (
     output  awqos;
     output  wvalid;
     input   wready;
-    input   wack;
     output  wdata;
     output  wstrb;
     output  wlast;
     input   bvalid;
     output  bready;
-    input   back;
     input   bid;
     input   bresp;
     output  arvalid;
     input   arready;
-    input   arack;
     output  arid;
     output  araddr;
     output  arlen;
@@ -86,7 +72,6 @@ interface tvip_axi_if (
     output  arqos;
     input   rvalid;
     output  rready;
-    input   rack;
     input   rid;
     input   rdata;
     input   rresp;
@@ -94,9 +79,9 @@ interface tvip_axi_if (
   endclocking
 
   clocking slave_cb @(posedge aclk);
+    input   areset_n;
     input   awvalid;
     output  awready;
-    input   awack;
     input   awid;
     input   awaddr;
     input   awlen;
@@ -105,18 +90,15 @@ interface tvip_axi_if (
     input   awqos;
     input   wvalid;
     output  wready;
-    input   wack;
     input   wdata;
     input   wstrb;
     input   wlast;
     output  bvalid;
     input   bready;
-    input   back;
     output  bid;
     output  bresp;
     input   arvalid;
     output  arready;
-    input   arack;
     input   arid;
     input   araddr;
     input   arlen;
@@ -125,7 +107,6 @@ interface tvip_axi_if (
     input   arqos;
     output  rvalid;
     input   rready;
-    input   rack;
     output  rid;
     output  rdata;
     output  rresp;
@@ -133,9 +114,9 @@ interface tvip_axi_if (
   endclocking
 
   clocking monitor_cb @(posedge aclk);
+    input areset_n;
     input awvalid;
     input awready;
-    input awack;
     input awid;
     input awaddr;
     input awlen;
@@ -144,18 +125,15 @@ interface tvip_axi_if (
     input awqos;
     input wvalid;
     input wready;
-    input wack;
     input wdata;
     input wstrb;
     input wlast;
     input bvalid;
     input bready;
-    input back;
     input bid;
     input bresp;
     input arvalid;
     input arready;
-    input arack;
     input arid;
     input araddr;
     input arlen;
@@ -164,11 +142,26 @@ interface tvip_axi_if (
     input arqos;
     input rvalid;
     input rready;
-    input rack;
     input rid;
     input rdata;
     input rresp;
     input rlast;
   endclocking
+
+  event at_master_cb_edge;
+  event at_slave_cb_edge;
+  event at_monitor_cb_edge;
+
+  always @(master_cb) begin
+    ->at_master_cb_edge;
+  end
+
+  always @(slave_cb) begin
+    ->at_slave_cb_edge;
+  end
+
+  always @(monitor_cb) begin
+    ->at_monitor_cb_edge;
+  end
 endinterface
 `endif
