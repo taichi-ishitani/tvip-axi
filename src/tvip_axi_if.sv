@@ -1,15 +1,15 @@
 `ifndef TVIP_AXI_IF_SV
 `define TVIP_AXI_IF_SV
 interface tvip_axi_if (
-  input bit aclk,
-  input bit areset_n
+  input var aclk,
+  input var areset_n
 );
   import  tvip_axi_types_pkg::*;
 
   //  Write Address Channel
-  bit                   awvalid;
-  bit                   awready;
-  bit                   awack;
+  logic                 awvalid;
+  logic                 awready;
+  logic                 awack;
   tvip_axi_id           awid;
   tvip_axi_address      awaddr;
   tvip_axi_burst_length awlen;
@@ -17,22 +17,22 @@ interface tvip_axi_if (
   tvip_axi_burst_type   awburst;
   tvip_axi_qos          awqos;
   //  Write Data Channel
-  bit                   wvalid;
-  bit                   wready;
-  bit                   wack;
+  logic                 wvalid;
+  logic                 wready;
+  logic                 wack;
   tvip_axi_data         wdata;
   tvip_axi_strobe       wstrb;
-  bit                   wlast;
+  logic                 wlast;
   //  Write Response Channel
-  bit                   bvalid;
-  bit                   bready;
-  bit                   back;
+  logic                 bvalid;
+  logic                 bready;
+  logic                 back;
   tvip_axi_id           bid;
   tvip_axi_response     bresp;
   //  Read Address Channel
-  bit                   arvalid;
-  bit                   arready;
-  bit                   arack;
+  logic                 arvalid;
+  logic                 arready;
+  logic                 arack;
   tvip_axi_id           arid;
   tvip_axi_address      araddr;
   tvip_axi_burst_length arlen;
@@ -40,13 +40,13 @@ interface tvip_axi_if (
   tvip_axi_burst_type   arburst;
   tvip_axi_qos          arqos;
   //  Read Data Channel
-  bit                   rvalid;
-  bit                   rready;
-  bit                   rack;
+  logic                 rvalid;
+  logic                 rready;
+  logic                 rack;
   tvip_axi_id           rid;
   tvip_axi_data         rdata;
   tvip_axi_response     rresp;
-  bit                   rlast;
+  logic                 rlast;
 
   assign  awack = (awvalid && awready) ? '1 : '0;
   assign  wack  = (wvalid  && wready ) ? '1 : '0;
