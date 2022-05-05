@@ -43,6 +43,9 @@ class tvip_axi_ral_adapter extends uvm_reg_adapter;
   endfunction
 
   protected function uvm_status_e get_status(tvip_axi_item axi_item);
+    if ($isunknown(axi_item.response[0]) || $isunknown(axi_item.data[0])) begin
+      return UVM_HAS_X;
+    end
     case (axi_item.response[0])
       TVIP_AXI_OKAY:          return UVM_IS_OK;
       TVIP_AXI_EXOKAY:        return UVM_IS_OK;
