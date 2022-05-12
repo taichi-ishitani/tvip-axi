@@ -194,34 +194,9 @@ class tvip_axi_item extends tue_sequence_item #(
     end
   endtask
 
-  `uvm_object_utils_begin(tvip_axi_item)
-    `uvm_field_enum(tvip_axi_access_type, access_type, UVM_DEFAULT)
-    `uvm_field_int(id, UVM_DEFAULT | UVM_HEX)
-    `uvm_field_int(address, UVM_DEFAULT | UVM_HEX)
-    `uvm_field_int(burst_length, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_int(burst_size, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_enum(tvip_axi_burst_type, burst_type, UVM_DEFAULT)
-    `uvm_field_int(qos, UVM_DEFAULT | UVM_DEC)
-    `uvm_field_array_int(data, UVM_DEFAULT | UVM_HEX)
-    `uvm_field_array_int(strobe, UVM_DEFAULT | UVM_HEX)
-    `uvm_field_array_enum(tvip_axi_response, response, UVM_DEFAULT)
-    `uvm_field_int(start_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
-    `uvm_field_array_int(write_data_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
-    `uvm_field_array_int(response_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
-    `uvm_field_int(address_ready_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
-    `uvm_field_array_int(write_data_ready_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
-    `uvm_field_array_int(response_ready_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
-    `uvm_field_int(address_begin_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
-    `uvm_field_int(address_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
-    `uvm_field_int(write_data_begin_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
-    `uvm_field_int(write_data_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
-    `uvm_field_int(response_begin_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
-    `uvm_field_int(response_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
-    `uvm_field_int(need_response, UVM_DEFAULT | UVM_NOCOMPARE | UVM_NOPRINT)
-  `uvm_object_utils_end
-endclass
-
-class tvip_axi_master_item extends tvip_axi_item;
+//--------------------------------------------------------------
+//  Random constraints for request
+//--------------------------------------------------------------
   constraint c_valid_id {
     (id >> this.configuration.id_width) == 0;
   }
@@ -263,7 +238,7 @@ class tvip_axi_master_item extends tvip_axi_item;
     ]};
   }
 
-  constraint c_valid_data {
+  constraint c_valid_write_data {
     solve access_type  before data;
     solve burst_length before data;
 
@@ -287,7 +262,7 @@ class tvip_axi_master_item extends tvip_axi_item;
     }
   }
 
-  constraint c_start_delay {
+  constraint c_address_start_delay {
     `tvip_delay_constraint(start_delay, this.configuration.request_start_delay)
   }
 
@@ -326,24 +301,10 @@ class tvip_axi_master_item extends tvip_axi_item;
     }
   }
 
-  constraint c_default_need_response {
-    soft need_response == 0;
-  }
-
-  function void pre_randomize();
-    super.pre_randomize();
-    response.rand_mode(0);
-    response_delay.rand_mode(0);
-    address_ready_delay.rand_mode(0);
-    write_data_ready_delay.rand_mode(0);
-  endfunction
-
-  `tue_object_default_constructor(tvip_axi_master_item)
-  `uvm_object_utils(tvip_axi_master_item)
-endclass
-
-class tvip_axi_slave_item extends tvip_axi_item;
-  constraint c_valid_data {
+//--------------------------------------------------------------
+//  Random constraints for response
+//--------------------------------------------------------------
+  constraint c_valid_read_data {
     data.size() == burst_length;
     foreach (data[i]) {
       (data[i] >> this.configuration.data_width) == 0;
@@ -385,7 +346,7 @@ class tvip_axi_slave_item extends tvip_axi_item;
     }
   }
 
-  constraint c_start_delay {
+  constraint c_response_start_delay {
     `tvip_delay_constraint(start_delay, this.configuration.response_start_delay)
   }
 
@@ -402,6 +363,57 @@ class tvip_axi_slave_item extends tvip_axi_item;
     }
   }
 
+  `uvm_object_utils_begin(tvip_axi_item)
+    `uvm_field_enum(tvip_axi_access_type, access_type, UVM_DEFAULT)
+    `uvm_field_int(id, UVM_DEFAULT | UVM_HEX)
+    `uvm_field_int(address, UVM_DEFAULT | UVM_HEX)
+    `uvm_field_int(burst_length, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_int(burst_size, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_enum(tvip_axi_burst_type, burst_type, UVM_DEFAULT)
+    `uvm_field_int(qos, UVM_DEFAULT | UVM_DEC)
+    `uvm_field_array_int(data, UVM_DEFAULT | UVM_HEX)
+    `uvm_field_array_int(strobe, UVM_DEFAULT | UVM_HEX)
+    `uvm_field_array_enum(tvip_axi_response, response, UVM_DEFAULT)
+    `uvm_field_int(start_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
+    `uvm_field_array_int(write_data_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
+    `uvm_field_array_int(response_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
+    `uvm_field_int(address_ready_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
+    `uvm_field_array_int(write_data_ready_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
+    `uvm_field_array_int(response_ready_delay, UVM_DEFAULT | UVM_DEC | UVM_NOCOMPARE)
+    `uvm_field_int(address_begin_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
+    `uvm_field_int(address_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
+    `uvm_field_int(write_data_begin_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
+    `uvm_field_int(write_data_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
+    `uvm_field_int(response_begin_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
+    `uvm_field_int(response_end_time, UVM_DEFAULT | UVM_TIME | UVM_NOCOMPARE)
+    `uvm_field_int(need_response, UVM_DEFAULT | UVM_NOCOMPARE | UVM_NOPRINT)
+  `uvm_object_utils_end
+endclass
+
+class tvip_axi_master_item extends tvip_axi_item;
+  constraint c_default_need_response {
+    soft need_response == 0;
+  }
+
+  function void pre_randomize();
+    super.pre_randomize();
+    response.rand_mode(0);
+    response_delay.rand_mode(0);
+    address_ready_delay.rand_mode(0);
+    write_data_ready_delay.rand_mode(0);
+    c_valid_read_data.constraint_mode(0);
+    c_valid_response.constraint_mode(0);
+    c_address_ready_delay.constraint_mode(0);
+    c_write_data_ready_delay.constraint_mode(0);
+    c_response_start_delay.constraint_mode(0);
+    c_response_delay.constraint_mode(0);
+  endfunction
+
+  `tue_object_default_constructor(tvip_axi_master_item)
+  `uvm_object_utils(tvip_axi_master_item)
+endclass
+
+class tvip_axi_slave_item extends tvip_axi_item;
   constraint c_default_need_response {
     soft need_response == 1;
   }
@@ -414,13 +426,22 @@ class tvip_axi_slave_item extends tvip_axi_item;
     burst_length.rand_mode(0);
     burst_size.rand_mode(0);
     burst_type.rand_mode(0);
-    if (access_type == TVIP_AXI_WRITE_ACCESS) begin
-      data.rand_mode(0);
-      c_valid_data.constraint_mode(0);
-    end
+    data.rand_mode(is_read());
     strobe.rand_mode(0);
     write_data_delay.rand_mode(0);
     response_ready_delay.rand_mode(0);
+    c_valid_id.constraint_mode(0);
+    c_valid_address.constraint_mode(0);
+    c_valid_burst_length.constraint_mode(0);
+    c_valid_burst_size.constraint_mode(0);
+    c_4kb_boundary.constraint_mode(0);
+    c_valid_qos.constraint_mode(0);
+    c_valid_write_data.constraint_mode(0);
+    c_valid_read_data.constraint_mode(is_read());
+    c_valid_strobe.constraint_mode(0);
+    c_address_start_delay.constraint_mode(0);
+    c_write_data_delay.constraint_mode(0);
+    c_response_ready_delay.constraint_mode(0);
   endfunction
 
   `tue_object_default_constructor(tvip_axi_slave_item)

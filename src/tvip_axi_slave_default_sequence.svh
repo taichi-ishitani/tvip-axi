@@ -1,8 +1,6 @@
 `ifndef TVIP_AXI_SLAVE_DEFAULT_SEQUENCE_SVH
 `define TVIP_AXI_SLAVE_DEFAULT_SEQUENCE_SVH
 class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
-  protected tvip_axi_slave_item context_item[tvip_axi_access_type];
-
   task body();
     fork
       process_response_request(TVIP_AXI_WRITE_ACCESS);
@@ -23,68 +21,33 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
     tvip_axi_access_type  access_type,
     tvip_axi_slave_item   item
   );
-    bit               read_access;
-    int               response_size;
-    int               address_ready_delay;
-    int               write_data_ready_delay[$];
-    int               response_start_delay;
-    int               response_delay[$];
-    tvip_axi_response response[$];
-    bit               response_existance[$];
-    tvip_axi_data     read_data[$];
-    bit               read_data_existance[$];
+    int response_size;
+    int delay;
 
-    context_item[access_type] = item;
-    read_access               = item.is_read();
-    response_size             = (read_access) ? item.burst_length : 1;
-    address_ready_delay       = get_address_ready_delay(access_type);
-    response_start_delay      = get_response_start_delay(access_type);
-    if (item.is_write()) begin
-      for (int i = 0;i < item.burst_length;++i) begin
-        write_data_ready_delay.push_back(get_write_data_ready_delay(access_type, i));
-      end
+    if (!item.randomize()) begin
+      `uvm_fatal("RNDFLD", "Randomization failed")
+    end
+
+    response_size = (item.is_read()) ? item.burst_length : 1;
+    if ((delay = get_address_ready_delay(item)) >= 0) begin
+      item.address_ready_delay  = delay;
+    end
+    if ((delay = get_response_start_delay(item)) >= 0) begin
+      item.start_delay  = delay;
     end
     for (int i = 0;i < response_size;++i) begin
-      response.push_back(get_response_status(access_type, i));
-      response_existance.push_back(get_response_existence(access_type, i));
-      response_delay.push_back(get_response_delay(access_type, i));
-      if (item.is_read()) begin
-        read_data.push_back(get_read_data(i));
-        read_data_existance.push_back(get_read_data_existence(i));
+      if (item.is_write() && ((delay = get_write_data_ready_delay(item, i)) >= 0)) begin
+        item.write_data_ready_delay[i]  = delay;
       end
-    end
-
-    if (!item.randomize() with {
-      if (local::address_ready_delay >= 0) {
-        address_ready_delay == local::address_ready_delay;
-      }
-      foreach (write_data_ready_delay[i]) {
-        if (local::write_data_ready_delay[i] >= 0) {
-          write_data_ready_delay[i] == local::write_data_ready_delay[i];
-        }
-      }
-      if (local::response_start_delay >= 0) {
-        response_start_delay == local::response_start_delay;
-      }
-      foreach (response_delay[i]) {
-        if (local::response_delay[i] >= 0) {
-          response_delay[i] == local::response_delay[i];
-        }
-      }
-      foreach (response[i]) {
-        if (local::response_existance[i]) {
-          response[i] == local::response[i];
-        }
-      }
-      if (local::read_access) {
-        foreach (data[i]) {
-          if (local::read_data_existance[i]) {
-            data[i] == local::read_data[i];
-          }
-        }
-      }
-    }) begin
-      `uvm_fatal("RNDFLD", "Randomization failed")
+      if ((delay = get_response_delay(item, i)) >= 0) begin
+        item.response_delay[i]  = delay;
+      end
+      if (get_response_existence(item, i)) begin
+        item.response[i]  = get_response_status(item, i);
+      end
+      if (item.is_read() && get_read_data_existence(item, i)) begin
+        item.data[i]  = get_read_data(item, i);
+      end
     end
   endfunction
 
@@ -95,37 +58,35 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
     join_none
   endtask
 
-  protected virtual function int get_address_ready_delay(tvip_axi_access_type access_type);
+  protected virtual function int get_address_ready_delay(tvip_axi_slave_item item);
     return -1;
   endfunction
 
-  protected virtual function int get_write_data_ready_delay(tvip_axi_access_type access_type, int index);
+  protected virtual function int get_write_data_ready_delay(tvip_axi_slave_item item, int index);
     return -1;
   endfunction
 
-  protected virtual function int get_response_start_delay(tvip_axi_access_type access_type);
+  protected virtual function int get_response_start_delay(tvip_axi_slave_item item);
     return -1;
   endfunction
 
-  protected virtual function int get_response_delay(tvip_axi_access_type access_type, int index);
+  protected virtual function int get_response_delay(tvip_axi_slave_item item, int index);
     return -1;
   endfunction
 
-  protected virtual function tvip_axi_response get_response_status(tvip_axi_access_type access_type, int index);
+  protected virtual function tvip_axi_response get_response_status(tvip_axi_slave_item item, int index);
     return TVIP_AXI_OKAY;
   endfunction
 
-  protected virtual function bit get_response_existence(tvip_axi_access_type access_type, int index);
+  protected virtual function bit get_response_existence(tvip_axi_slave_item item, int index);
     return 0;
   endfunction
 
-  protected virtual function tvip_axi_data get_read_data(int index);
-    tvip_axi_slave_item item  = context_item[TVIP_AXI_READ_ACCESS];
+  protected virtual function tvip_axi_data get_read_data(tvip_axi_slave_item item, int index);
     return status.memory.get(item.burst_size, item.address, index);
   endfunction
 
-  protected virtual function bit get_read_data_existence(int index);
-    tvip_axi_slave_item item  = context_item[TVIP_AXI_READ_ACCESS];
+  protected virtual function bit get_read_data_existence(tvip_axi_slave_item item, int index);
     return status.memory.exists(item.burst_size, item.address, index);
   endfunction
 

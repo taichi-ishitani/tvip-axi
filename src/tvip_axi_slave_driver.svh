@@ -172,8 +172,9 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
     preceded_ready_count[1] = 0;
 
     foreach (response_queue[i]) begin
-      foreach (response_queue[i][j]) begin
-        if (response_queue[i][j].ended()) begin
+      int size  = response_queue[i].size();
+      for (int j = 0;j < size;++j) begin
+        if (response_queue[i][j].finished()) begin
           end_tr(response_queue[i][j]);
         end
         response_queue[i].delete();
@@ -181,7 +182,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
     end
 
     foreach (active_responses[i]) begin
-      if (active_responses[i].item.ended()) begin
+      if (active_responses[i].item.finished()) begin
         end_tr(active_responses[i].item);
       end
     end
