@@ -29,6 +29,7 @@ class tvip_axi_master_sub_driver extends tvip_axi_component_base #(
         main();
         @(negedge vif.areset_n);
       join_any
+      disable fork;
     end
   endtask
 
