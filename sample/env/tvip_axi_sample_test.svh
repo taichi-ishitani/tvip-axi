@@ -10,7 +10,7 @@ class tvip_axi_sample_test extends tue_test #(
 
   function new(string name = "tvip_axi_sample_test", uvm_component parent = null);
     super.new(name, parent);
-    `ifndef VIVADO
+    `ifndef XILINX_SIMULATOR
       `uvm_info("SRANDOM", $sformatf("Initial random seed: %0d", $get_initial_random_seed), UVM_NONE)
     `endif
   endfunction
@@ -21,6 +21,7 @@ class tvip_axi_sample_test extends tue_test #(
     void'(uvm_config_db #(tvip_axi_vif)::get(null, "", "vif[1]", configuration.axi_cfg[1].vif));
     if (configuration.randomize()) begin
       `uvm_info(get_name(), $sformatf("configuration...\n%s", configuration.sprint()), UVM_NONE)
+      $finish;
     end
     else begin
       `uvm_fatal(get_name(), "randomization failed !!")
