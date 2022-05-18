@@ -1,60 +1,87 @@
 `ifndef TVIP_AXI_SLAVE_DRIVER_SVH
 `define TVIP_AXI_SLAVE_DRIVER_SVH
+typedef tue_fifo #(tvip_axi_item) tvip_axi_slave_driver_item_queue;
+
 typedef struct {
-  int           delay;
-  uvm_event     notifier;
+  tvip_axi_item                     item;
+  tvip_axi_slave_driver_item_queue  queue;
 } tvip_axi_start_delay_item;
 
 class tvip_axi_slave_driver_start_delay_consumer;
+  protected uvm_component                         parent;
   protected tvip_axi_vif                          vif;
   protected tue_fifo #(tvip_axi_start_delay_item) delay_queue[tvip_axi_id];
+  protected event                                 reset;
   protected event                                 notifier;
 
-  function new(tvip_axi_vif vif);
-    this.vif  = vif;
+  function new(uvm_component parent, tvip_axi_vif vif);
+    this.parent = parent;
+    this.vif    = vif;
   endfunction
 
   task consume_start_delay(
-    input tvip_axi_item item,
-    ref   tvip_axi_item item_fifo[$]
+    tvip_axi_item                     item,
+    tvip_axi_slave_driver_item_queue  queue
   );
     tvip_axi_start_delay_item delay_item;
 
-    item.wait_for_request_done();
-
-    delay_item.delay    = item.start_delay;
-    delay_item.notifier = new;
+    delay_item.item     = item;
+    delay_item.queue    = queue;
     if (!delay_queue.exists(item.id)) begin
       start_delay_thread(item.id);
     end
     delay_queue[item.id].put(delay_item);
-
-    delay_item.notifier.wait_on();
-    item_fifo.push_back(item);
-    ->notifier;
   endtask
 
   task wait_for_active_response();
     @(notifier);
   endtask
 
-  protected function void start_delay_thread(tvip_axi_id id);
+  function void do_reset();
+    ->reset;
+  endfunction
+
+  protected task start_delay_thread(tvip_axi_id id);
     delay_queue[id] = new("delay_queue", 0);
     fork
       automatic tvip_axi_id __id  = id;
       delay_thread(__id);
     join_none
-  endfunction
+    //#0;
+  endtask
 
   protected task delay_thread(tvip_axi_id id);
     tvip_axi_start_delay_item item;
+
     forever begin
-      delay_queue[id].get(item);
-      repeat (item.delay) begin
-        @(vif.slave_cb);
+      fork
+        forever begin
+          delay_queue[id].get(item);
+          delay_thread_body(item);
+        end
+        @(reset);
+      join_any
+      disable fork;
+
+      if (!item.item.ended()) begin
+        parent.end_tr(item.item);
       end
-      item.notifier.trigger();
+
+      while (delay_queue[id].try_get(item)) begin
+        if (!item.item.ended()) begin
+          parent.end_tr(item.item);
+        end
+      end
     end
+  endtask
+
+  protected task delay_thread_body(ref tvip_axi_start_delay_item item);
+    item.item.wait_for_request_done();
+    repeat (item.item.start_delay) begin
+      @(vif.slave_cb);
+    end
+    item.queue.put(item.item);
+    ->notifier;
   endtask
 endclass
 
@@ -117,14 +144,14 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
   protected int                                         ready_delay_queue[2][$];
   protected int                                         preceded_ready_count[2];
   protected tvip_axi_slave_driver_start_delay_consumer  start_delay_consumer;
-  protected tvip_axi_item                               response_queue[tvip_axi_id][$];
+  protected tvip_axi_slave_driver_item_queue            response_queue[tvip_axi_id];
   protected tvip_axi_slave_driver_response_item         active_responses[$];
   protected tvip_axi_id                                 active_ids[$];
   protected int                                         current_response_index;
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
-    start_delay_consumer  = new(vif);
+    start_delay_consumer  = new(this, vif);
   endfunction
 
   task run_phase(uvm_phase phase);
@@ -153,12 +180,12 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
       TVIP_AXI_IN_ORDER:      queue_id  = 0;
     endcase
 
+    if (!response_queue.exists(queue_id)) begin
+      response_queue[queue_id]  = new("response_queue", 0);
+    end
+
     accept_tr(request);
-    fork
-      automatic tvip_axi_item __request   = request;
-      automatic tvip_axi_id   __queue_id  = queue_id;
-      start_delay_consumer.consume_start_delay(__request, response_queue[__queue_id]);
-    join_none
+    start_delay_consumer.consume_start_delay(request, response_queue[queue_id]);
   endtask
 
   task begin_response(tvip_axi_item item);
@@ -167,17 +194,19 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
   endtask
 
   protected task do_reset();
+    start_delay_consumer.do_reset();
+
     ready_delay_queue[0].delete();
     ready_delay_queue[1].delete();
     preceded_ready_count[0] = 0;
     preceded_ready_count[1] = 0;
 
     foreach (response_queue[i]) begin
-      foreach (response_queue[i][j]) begin
-        if (response_queue[i][j].ended()) begin
-          end_tr(response_queue[i][j]);
+      tvip_axi_item item;
+      while (response_queue[i].try_get(item)) begin
+        if (!item.ended()) begin
+          end_tr(item);
         end
-        response_queue[i].delete();
       end
     end
 
@@ -319,6 +348,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
   endtask
 
   protected task get_next_response_item(ref tvip_axi_slave_driver_response_item item);
+    tvip_axi_item                       axi_item;
     tvip_axi_slave_driver_response_item new_item;
 
     if (no_response()) begin
@@ -329,14 +359,15 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
     end
 
     foreach (response_queue[id]) begin
-      if (response_queue[id].size() == 0) begin
+      if (response_queue[id].used() == 0) begin
         continue;
       end
       if (!is_acceptable_response(id)) begin
         continue;
       end
 
-      new_item  = new(response_queue[id].pop_front());
+      response_queue[id].get(axi_item);
+      new_item  = new(axi_item);
       active_responses.push_back(new_item);
       active_ids.push_back(id);
     end
@@ -355,7 +386,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
       return 0;
     end
     foreach (response_queue[i]) begin
-      if (response_queue[i].size() > 0) begin
+      if (response_queue[i].used() > 0) begin
         return 0;
       end
     end
