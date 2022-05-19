@@ -47,7 +47,6 @@ class tvip_axi_slave_driver_start_delay_consumer;
       automatic tvip_axi_id __id  = id;
       delay_thread(__id);
     join_none
-    //#0;
   endtask
 
   protected task delay_thread(tvip_axi_id id);
@@ -63,7 +62,7 @@ class tvip_axi_slave_driver_start_delay_consumer;
       join_any
       disable fork;
 
-      if (!item.item.ended()) begin
+      if ((item.item != null) && (!item.item.ended())) begin
         parent.end_tr(item.item);
       end
 
