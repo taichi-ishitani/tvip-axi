@@ -21,16 +21,17 @@ class tvip_axi_slave_driver_start_delay_consumer;
 
   task consume_start_delay(
     tvip_axi_item                     item,
+    tvip_axi_id                       queue_id,
     tvip_axi_slave_driver_item_queue  queue
   );
     tvip_axi_start_delay_item delay_item;
 
-    delay_item.item     = item;
-    delay_item.queue    = queue;
-    if (!delay_queue.exists(item.id)) begin
-      start_delay_thread(item.id);
+    delay_item.item   = item;
+    delay_item.queue  = queue;
+    if (!delay_queue.exists(queue_id)) begin
+      start_delay_thread(queue_id);
     end
-    delay_queue[item.id].put(delay_item);
+    delay_queue[queue_id].put(delay_item);
   endtask
 
   task wait_for_active_response();
@@ -184,7 +185,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
     end
 
     accept_tr(request);
-    start_delay_consumer.consume_start_delay(request, response_queue[queue_id]);
+    start_delay_consumer.consume_start_delay(request, queue_id, response_queue[queue_id]);
   endtask
 
   task begin_response(tvip_axi_item item);
