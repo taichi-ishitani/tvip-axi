@@ -63,12 +63,12 @@ class tvip_axi_slave_driver_start_delay_consumer;
       join_any
       disable fork;
 
-      if ((item.item != null) && (!item.item.ended())) begin
+      if ((item.item != null) && (!item.item.finished())) begin
         parent.end_tr(item.item);
       end
 
       while (delay_queue[id].try_get(item)) begin
-        if (!item.item.ended()) begin
+        if (!item.item.finished()) begin
           parent.end_tr(item.item);
         end
       end
