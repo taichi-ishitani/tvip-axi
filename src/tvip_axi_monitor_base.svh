@@ -52,7 +52,7 @@ virtual class tvip_axi_monitor_base #(
 
   protected virtual task do_reset();
     foreach (write_data_stores[i, j]) begin
-      if (!write_data_stores[i][j].item.ended()) begin
+      if (!write_data_stores[i][j].item.finished()) begin
         end_tr(write_data_stores[i][j].item);
       end
     end
@@ -60,7 +60,7 @@ virtual class tvip_axi_monitor_base #(
     write_data_stores[1].delete();
 
     foreach (response_stores[i, j]) begin
-      if (!response_stores[i][j].item.ended()) begin
+      if (!response_stores[i][j].item.finished()) begin
         end_tr(response_stores[i][j].item);
       end
     end
@@ -372,7 +372,7 @@ virtual class tvip_axi_monitor_base #(
   protected function tvip_axi_item create_monitor_item();
     ITEM  item;
     item  = ITEM::type_id::create("axi_item");
-    item.set_context(configuration, status);
+    item.set_context(this.configuration, this.status);
     return item;
   endfunction
 

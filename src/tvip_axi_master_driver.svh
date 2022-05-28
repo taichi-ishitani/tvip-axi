@@ -57,7 +57,7 @@ class tvip_axi_master_sub_driver extends tvip_axi_component_base #(
 
     while (!address_queue.is_empty()) begin
       void'(address_queue.try_get(item));
-      if (!item.ended()) begin
+      if (!item.finished()) begin
         end_tr(item);
       end
     end
@@ -65,14 +65,14 @@ class tvip_axi_master_sub_driver extends tvip_axi_component_base #(
     if (write_data_queue != null) begin
       while (!write_data_queue.is_empty()) begin
         void'(write_data_queue.try_get(item));
-        if (!item.ended()) begin
+        if (!item.finished()) begin
           end_tr(item);
         end
       end
     end
 
     foreach (response_stores[i, j]) begin
-      if (!response_stores[i][j].item.ended()) begin
+      if (!response_stores[i][j].item.finished()) begin
         end_tr(response_stores[i][j].item);
       end
     end

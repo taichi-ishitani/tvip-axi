@@ -204,14 +204,14 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
     foreach (response_queue[i]) begin
       tvip_axi_item item;
       while (response_queue[i].try_get(item)) begin
-        if (!item.ended()) begin
+        if (!item.finished()) begin
           end_tr(item);
         end
       end
     end
 
     foreach (active_responses[i]) begin
-      if (active_responses[i].item.ended()) begin
+      if (active_responses[i].item.finished()) begin
         end_tr(active_responses[i].item);
       end
     end

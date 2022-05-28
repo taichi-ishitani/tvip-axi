@@ -10,7 +10,9 @@ class tvip_axi_sample_test extends tue_test #(
 
   function new(string name = "tvip_axi_sample_test", uvm_component parent = null);
     super.new(name, parent);
-    `uvm_info("SRANDOM", $sformatf("Initial random seed: %0d", $get_initial_random_seed), UVM_NONE)
+    `ifndef XILINX_SIMULATOR
+      `uvm_info("SRANDOM", $sformatf("Initial random seed: %0d", $get_initial_random_seed), UVM_NONE)
+    `endif
   endfunction
 
   function void create_configuration();
