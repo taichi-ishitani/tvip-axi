@@ -27,6 +27,12 @@ package tvip_axi_types_pkg;
     TVIP_AXI_WRAPPING_BURST     = 'b10
   } tvip_axi_burst_type;
 
+  typedef struct packed {
+    logic instruction_access;
+    logic non_secure_access;
+    logic privileged_access;
+  } tvip_axi_protection;
+
   typedef enum logic [1:0] {
     TVIP_AXI_OKAY         = 'b00,
     TVIP_AXI_EXOKAY       = 'b01,

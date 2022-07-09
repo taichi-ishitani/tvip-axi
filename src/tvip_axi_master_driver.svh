@@ -300,6 +300,7 @@ class tvip_axi_master_write_driver extends tvip_axi_master_sub_driver;
     vif.awlen   = '0;
     vif.awsize  = tvip_axi_burst_size'(0);
     vif.awburst = tvip_axi_burst_type'(0);
+    vif.awprot  = '0;
     vif.awqos   = '0;
     vif.wvalid  = '0;
     vif.wdata   = '0;
@@ -319,6 +320,7 @@ class tvip_axi_master_write_driver extends tvip_axi_master_sub_driver;
       vif.master_cb.awlen   <= item.get_packed_burst_length();
       vif.master_cb.awsize  <= item.get_packed_burst_size();
       vif.master_cb.awburst <= item.burst_type;
+      vif.master_cb.awprot  <= item.protection;
       vif.master_cb.awqos   <= item.qos;
     end
   endtask
@@ -372,6 +374,7 @@ class tvip_axi_master_read_driver extends tvip_axi_master_sub_driver;
     vif.arlen   = '0;
     vif.arsize  = tvip_axi_burst_size'(0);
     vif.arburst = tvip_axi_burst_type'(0);
+    vif.arprot  = '0;
     vif.arqos   = '0;
     vif.rready  = configuration.default_rready;
   endtask
@@ -387,6 +390,7 @@ class tvip_axi_master_read_driver extends tvip_axi_master_sub_driver;
       vif.master_cb.arlen   <= item.get_packed_burst_length();
       vif.master_cb.arsize  <= item.get_packed_burst_size();
       vif.master_cb.arburst <= item.burst_type;
+      vif.master_cb.arprot  <= item.protection;
       vif.master_cb.arqos   <= item.qos;
     end
   endtask

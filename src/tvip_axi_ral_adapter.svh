@@ -13,6 +13,7 @@ class tvip_axi_ral_adapter extends uvm_reg_adapter;
     axi_item                = tvip_axi_master_item::type_id::create("axi_item");
     axi_item.id             = get_axi_id();
     axi_item.address        = rw.addr;
+    axi_item.protection     = '0;
     axi_item.need_response  = 1;
     if (rw.kind == UVM_WRITE) begin
       axi_item.access_type  = TVIP_AXI_WRITE_ACCESS;

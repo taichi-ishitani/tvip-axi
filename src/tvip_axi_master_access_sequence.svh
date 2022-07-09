@@ -7,6 +7,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
   rand      int                   burst_length;
   rand      int                   burst_size;
   rand      tvip_axi_burst_type   burst_type;
+  rand      tvip_axi_protection   protection;
   rand      tvip_axi_qos          qos;
   rand      tvip_axi_data         data[];
   rand      tvip_axi_strobe       strobe[];
@@ -149,6 +150,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     request_item.burst_length         = burst_length;
     request_item.burst_size           = burst_size;
     request_item.burst_type           = burst_type;
+    request_item.protection           = protection;
     request_item.qos                  = qos;
     request_item.start_delay          = start_delay;
     request_item.response_ready_delay = new[response_ready_delay.size()](response_ready_delay);
@@ -180,6 +182,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     `uvm_field_int(burst_length, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(burst_size, UVM_DEFAULT | UVM_DEC)
     `uvm_field_enum(tvip_axi_burst_type, burst_type, UVM_DEFAULT)
+    `uvm_field_int(protection, UVM_DEFAULT | UVM_BIN)
     `uvm_field_int(qos, UVM_DEFAULT | UVM_DEC)
     `uvm_field_array_int(data, UVM_DEFAULT | UVM_HEX)
     `uvm_field_array_int(strobe, UVM_DEFAULT | UVM_HEX)

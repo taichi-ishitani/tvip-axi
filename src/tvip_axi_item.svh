@@ -10,6 +10,7 @@ class tvip_axi_item extends tue_sequence_item #(
   rand  int                   burst_length;
   rand  int                   burst_size;
   rand  tvip_axi_burst_type   burst_type;
+  rand  tvip_axi_protection   protection;
   rand  tvip_axi_qos          qos;
   rand  tvip_axi_data         data[];
   rand  tvip_axi_strobe       strobe[];
@@ -370,6 +371,7 @@ class tvip_axi_item extends tue_sequence_item #(
     `uvm_field_int(burst_length, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(burst_size, UVM_DEFAULT | UVM_DEC)
     `uvm_field_enum(tvip_axi_burst_type, burst_type, UVM_DEFAULT)
+    `uvm_field_int(protection, UVM_DEFAULT | UVM_BIN)
     `uvm_field_int(qos, UVM_DEFAULT | UVM_DEC)
     `uvm_field_array_int(data, UVM_DEFAULT | UVM_HEX)
     `uvm_field_array_int(strobe, UVM_DEFAULT | UVM_HEX)
@@ -426,6 +428,8 @@ class tvip_axi_slave_item extends tvip_axi_item;
     burst_length.rand_mode(0);
     burst_size.rand_mode(0);
     burst_type.rand_mode(0);
+    protection.rand_mode(0);
+    qos.rand_mode(0);
     data.rand_mode(is_read());
     strobe.rand_mode(0);
     write_data_delay.rand_mode(0);

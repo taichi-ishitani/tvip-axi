@@ -123,6 +123,7 @@ virtual class tvip_axi_monitor_base #(
     item.burst_length = get_burst_length();
     item.burst_size   = get_burst_size();
     item.burst_type   = get_burst_type();
+    item.protection   = get_protection();
     item.qos          = get_qos();
 
     begin_address(item);
@@ -171,6 +172,10 @@ virtual class tvip_axi_monitor_base #(
     else begin
       return TVIP_AXI_FIXED_BURST;
     end
+  endfunction
+
+  protected function tvip_axi_protection get_protection();
+    return (write_component) ? vif.monitor_cb.awprot : vif.monitor_cb.arprot;
   endfunction
 
   protected function tvip_axi_qos get_qos();
