@@ -14,6 +14,7 @@ interface tvip_axi_if (
   tvip_axi_burst_length awlen;
   tvip_axi_burst_size   awsize;
   tvip_axi_burst_type   awburst;
+  tvip_axi_cache        awcache;
   tvip_axi_protection   awprot;
   tvip_axi_qos          awqos;
   //  Write Data Channel
@@ -35,6 +36,7 @@ interface tvip_axi_if (
   tvip_axi_burst_length arlen;
   tvip_axi_burst_size   arsize;
   tvip_axi_burst_type   arburst;
+  tvip_axi_cache        arcache;
   tvip_axi_protection   arprot;
   tvip_axi_qos          arqos;
   //  Read Data Channel
@@ -55,6 +57,7 @@ interface tvip_axi_if (
     output  awsize;
     output  awburst;
     output  awprot;
+    output  awcache;
     output  awqos;
     output  wvalid;
     input   wready;
@@ -72,6 +75,7 @@ interface tvip_axi_if (
     output  arlen;
     output  arsize;
     output  arburst;
+    output  arcache;
     output  arprot;
     output  arqos;
     input   rvalid;
@@ -91,6 +95,7 @@ interface tvip_axi_if (
     input   awlen;
     input   awsize;
     input   awburst;
+    input   awcache;
     input   awprot;
     input   awqos;
     input   wvalid;
@@ -109,6 +114,7 @@ interface tvip_axi_if (
     input   arlen;
     input   arsize;
     input   arburst;
+    input   arcache;
     input   arprot;
     input   arqos;
     output  rvalid;
@@ -128,6 +134,7 @@ interface tvip_axi_if (
     input awlen;
     input awsize;
     input awburst;
+    input awcache;
     input awprot;
     input awqos;
     input wvalid;
@@ -146,6 +153,7 @@ interface tvip_axi_if (
     input arlen;
     input arsize;
     input arburst;
+    input arcache;
     input arprot;
     input arqos;
     input rvalid;

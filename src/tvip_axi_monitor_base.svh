@@ -123,6 +123,7 @@ virtual class tvip_axi_monitor_base #(
     item.burst_length = get_burst_length();
     item.burst_size   = get_burst_size();
     item.burst_type   = get_burst_type();
+    item.memory_type  = get_memory_type();
     item.protection   = get_protection();
     item.qos          = get_qos();
 
@@ -171,6 +172,18 @@ virtual class tvip_axi_monitor_base #(
     end
     else begin
       return TVIP_AXI_FIXED_BURST;
+    end
+  endfunction
+
+  protected function tvip_axi_memory_type get_memory_type();
+    if (configuration.protocol == TVIP_AXI4LITE) begin
+      return TVIP_AXI_DEVICE_NON_BUFFERABLE;
+    end
+    else if (write_component) begin
+      return decode_memory_type(vif.monitor_cb.awcache);
+    end
+    else begin
+      return decode_memory_type(vif.monitor_cb.arcache);
     end
   endfunction
 

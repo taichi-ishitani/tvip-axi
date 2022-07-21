@@ -10,6 +10,7 @@ class tvip_axi_item extends tue_sequence_item #(
   rand  int                   burst_length;
   rand  int                   burst_size;
   rand  tvip_axi_burst_type   burst_type;
+  rand  tvip_axi_memory_type  memory_type;
   rand  tvip_axi_protection   protection;
   rand  tvip_axi_qos          qos;
   rand  tvip_axi_data         data[];
@@ -43,6 +44,14 @@ class tvip_axi_item extends tue_sequence_item #(
     write_data_end_event    = get_event("write_data_end");
     response_begin_event    = get_event("response_begin");
     response_end_event      = get_event("response_end");
+  endfunction
+
+  function bit do_compare(uvm_object rhs, uvm_comparer comparer);
+    tvip_axi_item rhs_item;
+    $cast(rhs_item, rhs);
+    return
+      super.do_compare(rhs, comparer) &&
+      compare_memory_type(memory_type, rhs_item.memory_type, is_read());
   endfunction
 
   function bit is_write();
@@ -94,6 +103,24 @@ class tvip_axi_item extends tue_sequence_item #(
     end
     else begin
       burst_size  = unpack_burst_size(packed_burst_size);
+    end
+  endfunction
+
+  function tvip_axi_cache get_cache();
+    if ((configuration != null) && (configuration.protocol == TVIP_AXI4LITE)) begin
+      return '0;
+    end
+    else begin
+      return encode_memory_type(memory_type, is_read());
+    end
+  endfunction
+
+  function void put_cache(tvip_axi_cache cache);
+    if ((configuration != null) && (configuration.protocol == TVIP_AXI4LITE)) begin
+      memory_type = TVIP_AXI_DEVICE_NON_BUFFERABLE;
+    end
+    else begin
+      memory_type = decode_memory_type(cache);
     end
   endfunction
 
@@ -230,6 +257,12 @@ class tvip_axi_item extends tue_sequence_item #(
       (address & `tvip_axi_4kb_boundary_mask(burst_size)) +
       (burst_length * burst_size)
     ) <= 4096;
+  }
+
+  constraint c_valid_memory_type {
+    if (this.configuration.protocol == TVIP_AXI4LITE) {
+      memory_type == TVIP_AXI_DEVICE_NON_BUFFERABLE;
+    }
   }
 
   constraint c_valid_qos {
@@ -371,6 +404,7 @@ class tvip_axi_item extends tue_sequence_item #(
     `uvm_field_int(burst_length, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(burst_size, UVM_DEFAULT | UVM_DEC)
     `uvm_field_enum(tvip_axi_burst_type, burst_type, UVM_DEFAULT)
+    `uvm_field_enum(tvip_axi_memory_type, memory_type, UVM_DEFAULT | UVM_NOCOMPARE)
     `uvm_field_int(protection, UVM_DEFAULT | UVM_BIN)
     `uvm_field_int(qos, UVM_DEFAULT | UVM_DEC)
     `uvm_field_array_int(data, UVM_DEFAULT | UVM_HEX)

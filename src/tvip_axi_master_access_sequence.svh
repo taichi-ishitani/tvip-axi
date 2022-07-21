@@ -7,6 +7,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
   rand      int                   burst_length;
   rand      int                   burst_size;
   rand      tvip_axi_burst_type   burst_type;
+  rand      tvip_axi_memory_type  memory_type;
   rand      tvip_axi_protection   protection;
   rand      tvip_axi_qos          qos;
   rand      tvip_axi_data         data[];
@@ -57,6 +58,12 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
 
   constraint c_default_burst_type {
     burst_type == TVIP_AXI_INCREMENTING_BURST;
+  }
+
+  constraint c_valid_memory_type {
+    if (this.configuration.protocol == TVIP_AXI4LITE) {
+      memory_type == TVIP_AXI_DEVICE_NON_BUFFERABLE;
+    }
   }
 
   constraint c_valid_qos {
@@ -133,6 +140,14 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     response_done_event   = request_item.get_event("response_end");
   endfunction
 
+  function bit do_compare(uvm_object rhs, uvm_comparer comparer);
+    tvip_axi_master_access_sequence rhs_sequence;
+    $cast(rhs_sequence, rhs);
+    return
+      super.do_compare(rhs, comparer) &&
+      compare_memory_type(memory_type, rhs_sequence.memory_type, access_type == TVIP_AXI_READ_ACCESS);
+  endfunction
+
   task body();
     transmit_request();
     wait_for_response();
@@ -150,6 +165,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     request_item.burst_length         = burst_length;
     request_item.burst_size           = burst_size;
     request_item.burst_type           = burst_type;
+    request_item.memory_type          = memory_type;
     request_item.protection           = protection;
     request_item.qos                  = qos;
     request_item.start_delay          = start_delay;
@@ -182,6 +198,7 @@ class tvip_axi_master_access_sequence extends tvip_axi_master_sequence_base;
     `uvm_field_int(burst_length, UVM_DEFAULT | UVM_DEC)
     `uvm_field_int(burst_size, UVM_DEFAULT | UVM_DEC)
     `uvm_field_enum(tvip_axi_burst_type, burst_type, UVM_DEFAULT)
+    `uvm_field_enum(tvip_axi_memory_type, memory_type, UVM_DEFAULT | UVM_NOCOMPARE)
     `uvm_field_int(protection, UVM_DEFAULT | UVM_BIN)
     `uvm_field_int(qos, UVM_DEFAULT | UVM_DEC)
     `uvm_field_array_int(data, UVM_DEFAULT | UVM_HEX)

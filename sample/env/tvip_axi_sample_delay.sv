@@ -66,6 +66,7 @@ module tvip_axi_sample_delay #(
     tvip_axi_burst_length awlen;
     tvip_axi_burst_size   awsize;
     tvip_axi_burst_type   awburst;
+    tvip_axi_cache        awcache;
     tvip_axi_protection   awprot;
     tvip_axi_qos          awqos;
   } tvip_axi_write_address;
@@ -87,6 +88,7 @@ module tvip_axi_sample_delay #(
     tvip_axi_burst_length arlen;
     tvip_axi_burst_size   arsize;
     tvip_axi_burst_type   arburst;
+    tvip_axi_cache        arcache;
     tvip_axi_protection   arprot;
     tvip_axi_qos          arqos;
   } tvip_axi_read_address;
@@ -115,6 +117,7 @@ module tvip_axi_sample_delay #(
     write_address[0].awlen    = slave_if.awlen;
     write_address[0].awsize   = slave_if.awsize;
     write_address[0].awburst  = slave_if.awburst;
+    write_address[0].awcache  = slave_if.awcache;
     write_address[0].awprot   = slave_if.awprot;
     write_address[0].awqos    = slave_if.awqos;
   end
@@ -125,6 +128,7 @@ module tvip_axi_sample_delay #(
     master_if.awlen   = write_address[1].awlen;
     master_if.awsize  = write_address[1].awsize;
     master_if.awburst = write_address[1].awburst;
+    master_if.awcache = write_address[1].awcache;
     master_if.awprot  = write_address[1].awprot;
     master_if.awqos   = write_address[1].awqos;
   end
@@ -208,6 +212,7 @@ module tvip_axi_sample_delay #(
     read_address[0].arlen   = slave_if.arlen;
     read_address[0].arsize  = slave_if.arsize;
     read_address[0].arburst = slave_if.arburst;
+    read_address[0].arcache = slave_if.arcache;
     read_address[0].arprot  = slave_if.arprot;
     read_address[0].arqos   = slave_if.arqos;
   end
@@ -218,6 +223,7 @@ module tvip_axi_sample_delay #(
     master_if.arlen   = read_address[1].arlen;
     master_if.arsize  = read_address[1].arsize;
     master_if.arburst = read_address[1].arburst;
+    master_if.arcache = read_address[1].arcache;
     master_if.arprot  = read_address[1].arprot;
     master_if.arqos   = read_address[1].arqos;
   end
