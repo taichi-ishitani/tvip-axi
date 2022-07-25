@@ -22,26 +22,21 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
     tvip_axi_slave_item   item
   );
     int response_size;
-    int delay;
 
     if (!item.randomize()) begin
       `uvm_fatal("RNDFLD", "Randomization failed")
     end
 
+    overwrite_delay(item.address_ready_delay, get_address_ready_delay(item));
+    overwrite_delay(item.start_delay, get_response_start_delay(item));
+
     response_size = (item.is_read()) ? item.burst_length : 1;
-    if ((delay = get_address_ready_delay(item)) >= 0) begin
-      item.address_ready_delay  = delay;
-    end
-    if ((delay = get_response_start_delay(item)) >= 0) begin
-      item.start_delay  = delay;
-    end
     for (int i = 0;i < response_size;++i) begin
-      if (item.is_write() && ((delay = get_write_data_ready_delay(item, i)) >= 0)) begin
-        item.write_data_ready_delay[i]  = delay;
+      overwrite_delay(item.response_delay[i], get_response_delay(item, i));
+      if (item.is_write()) begin
+        overwrite_delay(item.write_data_ready_delay[i], get_write_data_ready_delay(item, i));
       end
-      if ((delay = get_response_delay(item, i)) >= 0) begin
-        item.response_delay[i]  = delay;
-      end
+
       if (get_response_existence(item, i)) begin
         item.response[i]  = get_response_status(item, i);
       end
@@ -88,6 +83,15 @@ class tvip_axi_slave_default_sequence extends tvip_axi_slave_sequence_base;
 
   protected virtual function bit get_read_data_existence(tvip_axi_slave_item item, int index);
     return status.memory.exists(item.burst_size, item.address, index);
+  endfunction
+
+  protected function void overwrite_delay(
+    ref   int delay,
+    input int new_delay
+  );
+    if (new_delay >= 0) begin
+      delay = new_delay;
+    end
   endfunction
 
   `tue_object_default_constructor(tvip_axi_slave_default_sequence)
