@@ -331,7 +331,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
         continue;
       end
 
-      if (item.item.response_began()) begin
+      if (!item.item.response_began()) begin
         begin_response(item.item);
       end
 
