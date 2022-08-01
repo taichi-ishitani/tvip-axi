@@ -109,9 +109,13 @@ module tvip_axi_sample_delay #(
     enable_delay[4] = $test$plusargs("read_response_delay");
   end
 
+  logic                   awvalid[2];
+  logic                   awready[2];
   tvip_axi_write_address  write_address[2];
 
-  always_comb begin
+  always @* begin
+    slave_if.awready          = awready[0];
+    awvalid[0]                = slave_if.awvalid;
     write_address[0].awaddr   = slave_if.awaddr;
     write_address[0].awid     = slave_if.awid;
     write_address[0].awlen    = slave_if.awlen;
@@ -122,7 +126,9 @@ module tvip_axi_sample_delay #(
     write_address[0].awqos    = slave_if.awqos;
   end
 
-  always_comb begin
+  always @* begin
+    awready[1]        = master_if.awready;
+    master_if.awvalid = awvalid[1];
     master_if.awaddr  = write_address[1].awaddr;
     master_if.awid    = write_address[1].awid;
     master_if.awlen   = write_address[1].awlen;
@@ -137,29 +143,35 @@ module tvip_axi_sample_delay #(
     .DELAY  (WRITE_ADDRESS_DELAY    ),
     .DATA   (tvip_axi_write_address )
   ) u_write_address_delay (
-    .i_clk    (i_clk              ),
-    .i_rst_n  (i_rst_n            ),
-    .i_enable (enable_delay[0]    ),
-    .i_valid  (slave_if.awvalid   ),
-    .o_ready  (slave_if.awready   ),
-    .i_d      (write_address[0]   ),
-    .o_valid  (master_if.awvalid  ),
-    .i_ready  (master_if.awready  ),
-    .o_d      (write_address[1]   )
+    .i_clk    (i_clk            ),
+    .i_rst_n  (i_rst_n          ),
+    .i_enable (enable_delay[0]  ),
+    .i_valid  (awvalid[0]       ),
+    .o_ready  (awready[0]       ),
+    .i_d      (write_address[0] ),
+    .o_valid  (awvalid[1]       ),
+    .i_ready  (awready[1]       ),
+    .o_d      (write_address[1] )
   );
 
+  logic               wvalid[2];
+  logic               wready[2];
   tvip_axi_write_data write_data[2];
 
-  always_comb begin
+  always @* begin
+    slave_if.wready     = wready[0];
+    wvalid[0]           = slave_if.wvalid;
     write_data[0].wdata = slave_if.wdata;
     write_data[0].wstrb = slave_if.wstrb;
     write_data[0].wlast = slave_if.wlast;
   end
 
-  always_comb begin
-    master_if.wdata = write_data[1].wdata;
-    master_if.wstrb = write_data[1].wstrb;
-    master_if.wlast = write_data[1].wlast;
+  always @* begin
+    wready[1]         = master_if.wready;
+    master_if.wvalid  = wvalid[1];
+    master_if.wdata   = write_data[1].wdata;
+    master_if.wstrb   = write_data[1].wstrb;
+    master_if.wlast   = write_data[1].wlast;
   end
 
   tvip_axi_sample_delay_unit #(
@@ -169,22 +181,28 @@ module tvip_axi_sample_delay #(
     .i_clk    (i_clk            ),
     .i_rst_n  (i_rst_n          ),
     .i_enable (enable_delay[1]  ),
-    .i_valid  (slave_if.wvalid  ),
-    .o_ready  (slave_if.wready  ),
+    .i_valid  (wvalid[0]        ),
+    .o_ready  (wready[0]        ),
     .i_d      (write_data[0]    ),
-    .o_valid  (master_if.wvalid ),
-    .i_ready  (master_if.wready ),
+    .o_valid  (wvalid[1]        ),
+    .i_ready  (wready[1]        ),
     .o_d      (write_data[1]    )
   );
 
+  logic                   bvalid[2];
+  logic                   bready[2];
   tvip_axi_write_response write_response[2];
 
-  always_comb begin
+  always @* begin
+    master_if.bready        = bready[0];
+    bvalid[0]               = master_if.bvalid;
     write_response[0].bid   = master_if.bid;
     write_response[0].bresp = master_if.bresp;
   end
 
-  always_comb begin
+  always @* begin
+    bready[1]       = slave_if.bready;
+    slave_if.bvalid = bvalid[1];
     slave_if.bid    = write_response[1].bid;
     slave_if.bresp  = write_response[1].bresp;
   end
@@ -196,17 +214,21 @@ module tvip_axi_sample_delay #(
     .i_clk    (i_clk              ),
     .i_rst_n  (i_rst_n            ),
     .i_enable (enable_delay[2]    ),
-    .i_valid  (master_if.bvalid   ),
-    .o_ready  (master_if.bready   ),
+    .i_valid  (bvalid[0]          ),
+    .o_ready  (bready[0]          ),
     .i_d      (write_response[0]  ),
-    .o_valid  (slave_if.bvalid    ),
-    .i_ready  (slave_if.bready    ),
+    .o_valid  (bvalid[1]          ),
+    .i_ready  (bready[1]          ),
     .o_d      (write_response[1]  )
   );
 
+  logic                 arvalid[2];
+  logic                 arready[2];
   tvip_axi_read_address read_address[2];
 
-  always_comb begin
+  always @* begin
+    slave_if.arready        = arready[0];
+    arvalid[0]              = slave_if.arvalid;
     read_address[0].araddr  = slave_if.araddr;
     read_address[0].arid    = slave_if.arid;
     read_address[0].arlen   = slave_if.arlen;
@@ -217,7 +239,9 @@ module tvip_axi_sample_delay #(
     read_address[0].arqos   = slave_if.arqos;
   end
 
-  always_comb begin
+  always @* begin
+    arready[1]        = master_if.arready;
+    master_if.arvalid = arvalid[1];
     master_if.araddr  = read_address[1].araddr;
     master_if.arid    = read_address[1].arid;
     master_if.arlen   = read_address[1].arlen;
@@ -232,27 +256,33 @@ module tvip_axi_sample_delay #(
     .DELAY  (READ_ADDRESS_DELAY     ),
     .DATA   (tvip_axi_read_address  )
   ) u_read_address_delay (
-    .i_clk    (i_clk              ),
-    .i_rst_n  (i_rst_n            ),
-    .i_enable (enable_delay[3]    ),
-    .i_valid  (slave_if.arvalid   ),
-    .o_ready  (slave_if.arready   ),
-    .i_d      (read_address[0]    ),
-    .o_valid  (master_if.arvalid  ),
-    .i_ready  (master_if.arready  ),
-    .o_d      (read_address[1]    )
+    .i_clk    (i_clk            ),
+    .i_rst_n  (i_rst_n          ),
+    .i_enable (enable_delay[3]  ),
+    .i_valid  (arvalid[0]       ),
+    .o_ready  (arready[0]       ),
+    .i_d      (read_address[0]  ),
+    .o_valid  (arvalid[1]       ),
+    .i_ready  (arready[1]       ),
+    .o_d      (read_address[1]  )
   );
 
+  logic                   rvalid[2];
+  logic                   rready[2];
   tvip_axi_read_response  read_response[2];
 
-  always_comb begin
+  always @* begin
+    master_if.rready        = rready[0];
+    rvalid[0]               = master_if.rvalid;
     read_response[0].rid    = master_if.rid;
     read_response[0].rdata  = master_if.rdata;
     read_response[0].rresp  = master_if.rresp;
     read_response[0].rlast  = master_if.rlast;
   end
 
-  always_comb begin
+  always @* begin
+    rready[1]       = slave_if.rready;
+    slave_if.rvalid = rvalid[1];
     slave_if.rid    = read_response[1].rid;
     slave_if.rdata  = read_response[1].rdata;
     slave_if.rresp  = read_response[1].rresp;
@@ -266,11 +296,11 @@ module tvip_axi_sample_delay #(
     .i_clk    (i_clk            ),
     .i_rst_n  (i_rst_n          ),
     .i_enable (enable_delay[4]  ),
-    .i_valid  (master_if.rvalid ),
-    .o_ready  (master_if.rready ),
+    .i_valid  (rvalid[0]        ),
+    .o_ready  (rready[0]        ),
     .i_d      (read_response[0] ),
-    .o_valid  (slave_if.rvalid  ),
-    .i_ready  (slave_if.rready  ),
+    .o_valid  (rvalid[1]        ),
+    .i_ready  (rready[1]        ),
     .o_d      (read_response[1] )
   );
 endmodule
