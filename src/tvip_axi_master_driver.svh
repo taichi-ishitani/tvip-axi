@@ -79,7 +79,7 @@ class tvip_axi_master_sub_driver extends tvip_axi_component_base #(
     response_stores.delete();
 
     reset_if();
-    @(posedge vif.master_cb.areset_n);
+    @(posedge vif.areset_n);
   endtask
 
   protected virtual task reset_if();
@@ -294,20 +294,20 @@ class tvip_axi_master_write_driver extends tvip_axi_master_sub_driver;
   endfunction
 
   protected task reset_if();
-    vif.awvalid = '0;
-    vif.awid    = '0;
-    vif.awaddr  = '0;
-    vif.awlen   = '0;
-    vif.awsize  = tvip_axi_burst_size'(0);
-    vif.awburst = tvip_axi_burst_type'(0);
-    vif.awcache = tvip_axi_cache'(0);
-    vif.awprot  = '0;
-    vif.awqos   = '0;
-    vif.wvalid  = '0;
-    vif.wdata   = '0;
-    vif.wstrb   = '0;
-    vif.wlast   = '0;
-    vif.bready  = configuration.default_bready;
+    vif.master_cb.awvalid <= '0;
+    vif.master_cb.awid    <= '0;
+    vif.master_cb.awaddr  <= '0;
+    vif.master_cb.awlen   <= '0;
+    vif.master_cb.awsize  <= tvip_axi_burst_size'(0);
+    vif.master_cb.awburst <= tvip_axi_burst_type'(0);
+    vif.master_cb.awcache <= tvip_axi_cache'(0);
+    vif.master_cb.awprot  <= '0;
+    vif.master_cb.awqos   <= '0;
+    vif.master_cb.wvalid  <= '0;
+    vif.master_cb.wdata   <= '0;
+    vif.master_cb.wstrb   <= '0;
+    vif.master_cb.wlast   <= '0;
+    vif.master_cb.bready  <= configuration.default_bready;
   endtask
 
   protected task drive_address(
@@ -370,16 +370,16 @@ class tvip_axi_master_read_driver extends tvip_axi_master_sub_driver;
   endfunction
 
   protected task reset_if();
-    vif.arvalid = '0;
-    vif.arid    = '0;
-    vif.araddr  = '0;
-    vif.arlen   = '0;
-    vif.arsize  = tvip_axi_burst_size'(0);
-    vif.arburst = tvip_axi_burst_type'(0);
-    vif.arcache = tvip_axi_cache'(0);
-    vif.arprot  = '0;
-    vif.arqos   = '0;
-    vif.rready  = configuration.default_rready;
+    vif.master_cb.arvalid <= '0;
+    vif.master_cb.arid    <= '0;
+    vif.master_cb.araddr  <= '0;
+    vif.master_cb.arlen   <= '0;
+    vif.master_cb.arsize  <= tvip_axi_burst_size'(0);
+    vif.master_cb.arburst <= tvip_axi_burst_type'(0);
+    vif.master_cb.arcache <= tvip_axi_cache'(0);
+    vif.master_cb.arprot  <= '0;
+    vif.master_cb.arqos   <= '0;
+    vif.master_cb.rready  <= configuration.default_rready;
   endtask
 
   protected task drive_address(

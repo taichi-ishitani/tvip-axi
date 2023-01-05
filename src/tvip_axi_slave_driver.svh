@@ -219,7 +219,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
     active_ids.delete();
 
     reset_if();
-    @(posedge vif.slave_cb.areset_n);
+    @(posedge vif.areset_n);
   endtask
 
   protected virtual task reset_if();
@@ -495,11 +495,11 @@ class tvip_axi_slave_write_driver extends tvip_axi_slave_sub_driver;
   endfunction
 
   protected task reset_if();
-    vif.awready = configuration.default_awready;
-    vif.wready  = configuration.default_wready;
-    vif.bvalid  = '0;
-    vif.bid     = '0;
-    vif.bresp   = tvip_axi_response'(0);
+    vif.slave_cb.awready  <= configuration.default_awready;
+    vif.slave_cb.wready   <= configuration.default_wready;
+    vif.slave_cb.bvalid   <= '0;
+    vif.slave_cb.bid      <= '0;
+    vif.slave_cb.bresp    <= tvip_axi_response'(0);
   endtask
 
   protected function bit get_request_valid(bit write_data_thread);
@@ -542,12 +542,12 @@ class tvip_axi_slave_read_driver extends tvip_axi_slave_sub_driver;
   endfunction
 
   protected task reset_if();
-    vif.arready = configuration.default_arready;
-    vif.rvalid  = '0;
-    vif.rid     = '0;
-    vif.rresp   = tvip_axi_response'(0);
-    vif.rdata   = '0;
-    vif.rlast   = '0;
+    vif.slave_cb.arready  <= configuration.default_arready;
+    vif.slave_cb.rvalid   <= '0;
+    vif.slave_cb.rid      <= '0;
+    vif.slave_cb.rresp    <= tvip_axi_response'(0);
+    vif.slave_cb.rdata    <= '0;
+    vif.slave_cb.rlast    <= '0;
   endtask
 
   protected function bit get_request_valid(bit write_data_thread);
