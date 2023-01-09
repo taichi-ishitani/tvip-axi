@@ -47,8 +47,7 @@ interface tvip_axi_if (
   tvip_axi_response     rresp;
   logic                 rlast;
 
-  clocking master_cb @(posedge aclk);
-    input   areset_n;
+  clocking master_cb @(posedge aclk, negedge areset_n);
     output  awvalid;
     input   awready;
     output  awid;
@@ -86,8 +85,7 @@ interface tvip_axi_if (
     input   rlast;
   endclocking
 
-  clocking slave_cb @(posedge aclk);
-    input   areset_n;
+  clocking slave_cb @(posedge aclk, negedge areset_n);
     input   awvalid;
     output  awready;
     input   awid;
