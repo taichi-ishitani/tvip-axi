@@ -209,6 +209,7 @@ class tvip_axi_slave_sub_driver extends tvip_axi_component_base #(
         end
       end
     end
+    response_queue.delete();
 
     foreach (active_responses[i]) begin
       if (active_responses[i].item.finished()) begin
