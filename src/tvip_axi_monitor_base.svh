@@ -180,10 +180,10 @@ virtual class tvip_axi_monitor_base #(
       return TVIP_AXI_DEVICE_NON_BUFFERABLE;
     end
     else if (write_component) begin
-      return decode_memory_type(vif.monitor_cb.awcache);
+      return decode_memory_type(vif.monitor_cb.awcache, 0);
     end
     else begin
-      return decode_memory_type(vif.monitor_cb.arcache);
+      return decode_memory_type(vif.monitor_cb.arcache, 1);
     end
   endfunction
 

@@ -44,6 +44,20 @@ package tvip_axi_types_pkg;
   } tvip_axi_memory_type;
 
   typedef struct packed {
+    logic allocate;
+    logic other_allocate;
+    logic modifiable;
+    logic bufferable;
+  } tvip_axi_write_cache;
+
+  typedef struct packed {
+    logic other_allocate;
+    logic allocate;
+    logic modifiable;
+    logic bufferable;
+  } tvip_axi_read_cache;
+
+  typedef struct packed {
     logic instruction_access;
     logic non_secure_access;
     logic privileged_access;
@@ -128,19 +142,39 @@ package tvip_axi_types_pkg;
     endcase
   endfunction
 
-  function automatic tvip_axi_memory_type decode_memory_type(tvip_axi_cache cache);
-    case (cache)
-      4'b0000:  return TVIP_AXI_DEVICE_NON_BUFFERABLE;
-      4'b0001:  return TVIP_AXI_DEVICE_BUFFERABLE;
-      4'b0010:  return TVIP_AXI_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
-      4'b0011:  return TVIP_AXI_NORMAL_NON_CACHEABLE_BUFFERABLE;
-      4'b0110:  return TVIP_AXI_WRITE_THROUGH_NO_ALLOCATE;
-      4'b1010:  return TVIP_AXI_WRITE_THROUGH_NO_ALLOCATE;
-      4'b1110:  return TVIP_AXI_WRITE_THROUGH_READ_WRITE_ALLOCATE;
-      4'b1011:  return TVIP_AXI_WRITE_BACK_NO_ALLOCATE;
-      4'b1110:  return TVIP_AXI_WRITE_BACK_NO_ALLOCATE;
-      4'b1111:  return TVIP_AXI_WRITE_BACK_READ_WRITE_ALLOCATE;
-    endcase
+  function automatic tvip_axi_memory_type decode_memory_type(tvip_axi_cache cache, bit read_access);
+    if (read_access) begin
+      case (cache)
+        4'b0000:  return TVIP_AXI_DEVICE_NON_BUFFERABLE;
+        4'b0001:  return TVIP_AXI_DEVICE_BUFFERABLE;
+        4'b0010:  return TVIP_AXI_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
+        4'b0011:  return TVIP_AXI_NORMAL_NON_CACHEABLE_BUFFERABLE;
+        4'b1010:  return TVIP_AXI_WRITE_THROUGH_NO_ALLOCATE;
+        4'b1110:  return TVIP_AXI_WRITE_THROUGH_READ_ALLOCATE;
+        4'b1010:  return TVIP_AXI_WRITE_THROUGH_WRITE_ALLOCATE;
+        4'b1110:  return TVIP_AXI_WRITE_THROUGH_READ_WRITE_ALLOCATE;
+        4'b1011:  return TVIP_AXI_WRITE_BACK_NO_ALLOCATE;
+        4'b1111:  return TVIP_AXI_WRITE_BACK_READ_ALLOCATE;
+        4'b1011:  return TVIP_AXI_WRITE_BACK_WRITE_ALLOCATE;
+        4'b1111:  return TVIP_AXI_WRITE_BACK_READ_WRITE_ALLOCATE;
+      endcase
+    end
+    else begin
+      case (cache)
+        4'b0000:  return TVIP_AXI_DEVICE_NON_BUFFERABLE;
+        4'b0001:  return TVIP_AXI_DEVICE_BUFFERABLE;
+        4'b0010:  return TVIP_AXI_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
+        4'b0011:  return TVIP_AXI_NORMAL_NON_CACHEABLE_BUFFERABLE;
+        4'b0110:  return TVIP_AXI_WRITE_THROUGH_NO_ALLOCATE;
+        4'b0110:  return TVIP_AXI_WRITE_THROUGH_READ_ALLOCATE;
+        4'b1110:  return TVIP_AXI_WRITE_THROUGH_WRITE_ALLOCATE;
+        4'b1110:  return TVIP_AXI_WRITE_THROUGH_READ_WRITE_ALLOCATE;
+        4'b0111:  return TVIP_AXI_WRITE_BACK_NO_ALLOCATE;
+        4'b0111:  return TVIP_AXI_WRITE_BACK_READ_ALLOCATE;
+        4'b1111:  return TVIP_AXI_WRITE_BACK_WRITE_ALLOCATE;
+        4'b1111:  return TVIP_AXI_WRITE_BACK_READ_WRITE_ALLOCATE;
+      endcase
+    end
   endfunction
 
   function automatic bit compare_memory_type(tvip_axi_memory_type lhs, tvip_axi_memory_type rhs, bit read_access);

@@ -120,7 +120,7 @@ class tvip_axi_item extends tue_sequence_item #(
       memory_type = TVIP_AXI_DEVICE_NON_BUFFERABLE;
     end
     else begin
-      memory_type = decode_memory_type(cache);
+      memory_type = decode_memory_type(cache, is_read());
     end
   endfunction
 

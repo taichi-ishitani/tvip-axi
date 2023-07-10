@@ -14,7 +14,7 @@ interface tvip_axi_if (
   tvip_axi_burst_length awlen;
   tvip_axi_burst_size   awsize;
   tvip_axi_burst_type   awburst;
-  tvip_axi_cache        awcache;
+  tvip_axi_write_cache  awcache;
   tvip_axi_protection   awprot;
   tvip_axi_qos          awqos;
   //  Write Data Channel
@@ -36,7 +36,7 @@ interface tvip_axi_if (
   tvip_axi_burst_length arlen;
   tvip_axi_burst_size   arsize;
   tvip_axi_burst_type   arburst;
-  tvip_axi_cache        arcache;
+  tvip_axi_read_cache   arcache;
   tvip_axi_protection   arprot;
   tvip_axi_qos          arqos;
   //  Read Data Channel
