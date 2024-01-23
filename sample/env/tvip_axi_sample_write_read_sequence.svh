@@ -46,7 +46,7 @@ class tvip_axi_sample_write_read_sequence extends tvip_axi_master_sequence_base;
 
     foreach (write_items[i]) begin
       tvip_axi_master_item  read_item;
-      `uvm_do_with(read_item, {
+      `tue_do_with(read_item, {
         access_type  == TVIP_AXI_READ_ACCESS;
         address      == write_items[i].address;
         burst_size   == write_items[i].burst_size;

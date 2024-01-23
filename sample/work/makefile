@@ -19,6 +19,7 @@ SIMULATOR	?= vcs
 RANDOM_SEED	?= auto
 DUMP	?= off
 GUI	?= off
+UVM_VERSION ?= 1.2
 
 TESTS	+= default
 TESTS	+= request_delay

@@ -3,7 +3,7 @@ VCS_ARGS	+= -lca
 VCS_ARGS	+= -sverilog
 VCS_ARGS	+= -l compile.log
 VCS_ARGS	+= -timescale=1ns/1ps
-VCS_ARGS	+= -ntb_opts uvm
+VCS_ARGS	+= -ntb_opts uvm-$(UVM_VERSION)
 VCS_ARGS	+= +define+UVM_NO_DEPRECATED+UVM_OBJECT_MUST_HAVE_CONSTRUCTO
 VCS_ARGS	+= -top top
 

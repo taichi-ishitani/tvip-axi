@@ -3,12 +3,12 @@ XRUN_COMMON_ARGS	+= -timedetail
 XRUN_COMMON_ARGS	+= -status
 
 XMVLOG_ARGS	+= -compile
-XMVLOG_ARGS	+= -uvmhome CDNS-1.1d
+XMVLOG_ARGS	+= -uvmhome CDNS-$(UVM_VERSION)
 XMVLOG_ARGS	+= -plusperf
 XMVLOG_ARGS	+= -l xmvlog.log
 
 XMELAB_ARGS	+= -elaborate
-XMELAB_ARGS	+= -uvmhome CDNS-1.1d
+XMELAB_ARGS	+= -uvmhome CDNS-$(UVM_VERSION)
 XMELAB_ARGS	+= -uvmnoautocompile
 XMELAB_ARGS	+= -timescale 1ns/1ps
 XMELAB_ARGS	+= -newperf
@@ -17,7 +17,7 @@ XMELAB_ARGS	+= -top worklib.top
 XMELAB_ARGS	+= -l xmelab.log
 
 XMSIM_ARGS	+= -R
-XMSIM_ARGS	+= -uvmhome CDNS-1.1d
+XMSIM_ARGS	+= -uvmhome CDNS-$(UVM_VERSION)
 XMSIM_ARGS	+= -xmlibdirname ../xcelium.d
 XMSIM_ARGS	+= -xceligen on
 XMSIM_ARGS	+= -f test.f
