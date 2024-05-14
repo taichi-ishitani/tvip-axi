@@ -68,6 +68,7 @@ Supported simulators are below:
 * Synopsys VCS
 * Cadence Xcelium
     * `-warn_multiple_driver` option may be needed to avoid `E,ICDCBA` error
+* Metrics DSim Simulator
 
 ## Contact
 
