@@ -51,3 +51,4 @@ clean_all:
 include vcs.mk
 include xcelium.mk
 include vivado.mk
+include dsim.mk
