@@ -38,7 +38,7 @@ To execute the sample environment, hit command below on the `sample/work` direct
 
     $ make
 
-Then, all sample test cases will be executed by using Synopsys VSC simulator.
+Then, all sample test cases will be executed by using Synopsys VCS simulator.
 If you want to use Cadence Xcelium simulator, hit command below.
 
     $ make SIMULATOR=xcelium
