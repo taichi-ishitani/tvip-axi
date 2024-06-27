@@ -1,11 +1,13 @@
 `ifndef TVIP_AXI_SEQUENCER_BASE_SVH
 `define TVIP_AXI_SEQUENCER_BASE_SVH
-class tvip_axi_item_waiter extends tvip_item_waiter #(
-  .ITEM (tvip_axi_item  ),
-  .ID   (tvip_axi_id    )
+class tvip_axi_item_waiter extends tue_item_waiter #(
+  .CONFIGURATION  (tvip_axi_configuration ),
+  .STATUS         (tvip_axi_status        ),
+  .ITEM           (tvip_axi_item          ),
+  .KEY            (tvip_axi_id            )
 );
-  protected function tvip_axi_id get_id_from_item(tvip_axi_item item);
-    return item.id;
+  protected function bit match_key(KEY key, ITEM item);
+    return item.id == key;
   endfunction
   `tue_component_default_constructor(tvip_axi_item_waiter)
 endclass
@@ -28,15 +30,19 @@ class tvip_axi_sequencer_base #(
 
     address_item_export = new("address_item_export", this);
     address_item_waiter = new("address_item_waiter", this);
+    address_item_waiter.set_context(configuration, status);
 
     request_item_export = new("request_item_export", this);
     request_item_waiter = new("request_item_waiter", this);
+    request_item_waiter.set_context(configuration, status);
 
     response_item_export  = new("response_item_export", this);
     response_item_waiter  = new("response_item_waiter", this);
+    response_item_waiter.set_context(configuration, status);
 
     item_export = new("item_export", this);
     item_waiter = new("item_waiter", this);
+    item_waiter.set_context(configuration, status);
   endfunction
 
   function void connect_phase(uvm_phase phase);
@@ -52,7 +58,7 @@ class tvip_axi_sequencer_base #(
     ``ITEM_TYPE``_waiter.get_item(item); \
   endtask \
   virtual task get_``ITEM_TYPE``_by_id(ref tvip_axi_item item, input tvip_axi_id id); \
-    ``ITEM_TYPE``_waiter.get_item_by_id(item, id); \
+    ``ITEM_TYPE``_waiter.get_item_by_key(id, item); \
   endtask
 
   `tvip_axi_define_item_getter_tasks(address_item )

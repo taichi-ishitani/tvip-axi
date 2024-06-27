@@ -1,7 +1,7 @@
 #! /bin/bash -f
 submodules=(
-  "https://github.com/taichi-ishitani/tue.git tue be2e2a8de16781d476400cb7675ffddc55de6e13"
-  "https://github.com/taichi-ishitani/tvip-common.git tvip-common e08534cb325e758aa5564ebc39fe40492585a820"
+  "https://github.com/taichi-ishitani/tue.git tue d42734b16c613521655f29edc11294251e8b5b39"
+  "https://github.com/taichi-ishitani/tvip-common.git tvip-common be09036727aac5be4c483536b12e7a1e3c0c8b8b"
 )
 
 for ((i=0; $i < ${#submodules[*]}; i++)) do
