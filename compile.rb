@@ -1,5 +1,5 @@
 if ENV.key?('TVIP_COMMON_HOME')
-  file_list File.join(ENV['TVIP_COMMON_HOME'], 'compile.f')
+  file_list File.join(ENV['TVIP_COMMON_HOME'], 'compile.rb')
 elsif Dir.exist?(File.join(__dir__, 'tvip-common'))
   file_list 'tvip-common/compile.rb', from: :current
 end
