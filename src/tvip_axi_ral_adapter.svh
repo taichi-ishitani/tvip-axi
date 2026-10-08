@@ -15,6 +15,7 @@ class tvip_axi_ral_adapter extends uvm_reg_adapter;
     axi_item.address        = rw.addr;
     axi_item.protection     = '0;
     axi_item.need_response  = 1;
+    axi_item.burst_size     = rw.n_bits/8;
     if (rw.kind == UVM_WRITE) begin
       axi_item.access_type  = TVIP_AXI_WRITE_ACCESS;
       axi_item.data         = new[1];
@@ -36,6 +37,7 @@ class tvip_axi_ral_adapter extends uvm_reg_adapter;
     rw.kind     = (axi_item.is_write()) ? UVM_WRITE : UVM_READ;
     rw.data     = axi_item.data[0];
     rw.byte_en  = (axi_item.is_write()) ? axi_item.strobe[0] : rw.byte_en;
+    rw.n_bits   = axi_item.burst_size*8;
     rw.status   = get_status(axi_item);
   endfunction
 
